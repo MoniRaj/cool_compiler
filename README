@@ -1,0 +1,52 @@
+# README
+#
+# Explains contents and details how to run parser
+#
+# Author: Paul Elliott
+# Date: 5/7/13
+
+--1. Contents--
+This directory should contain:
+    a. test.sh - a shell script for compiling/running my code
+    b. scanner.flex - a JFlex program containing the scanner definition
+    c. Driver.java - a Driver program for testing the Cool parser/AST builder
+    d. ErrorReport.java - an error reporting class
+    e. cool.grammar - a Beaver grammar specification for a LALR(1) parser
+    f. Terminals.java - a class containing the Terminal IDs
+    g. beaver/
+        1. Scanner.java - part of Beaver scanner api
+        2. Symbol.java - part of Beaver scanner api
+        3. Action.java - part of Beaver api
+        4. Parser.java - part of Beaver api
+        5. ParsingTables.java - part of Beaver api
+        6. beaver-cc-0.9.11.jar - jar file used to execute Beaver on a grammar file
+        7. beaver-cc.jar - (older) jar file used to execute Beaver on a grammar file
+    h. ast/
+        [This directory contains all of the Java class files necessary
+         for building the AST--including abstract syntax classes and
+         the TreeWalker used to process the tree. I will not enumerate 
+         everything here in the interest of brevity.]
+    i. stat/
+        [This directory holds old copies of the .stat file, produced by Beaver.]
+    i. README - this file
+
+--2. To Run--
+To run, first open test.sh and modify the JFLEX variable to be your 
+local path to JFlex. If JFlex is at /usr/share/weird_place/jflex then:
+    JFLEX='/usr/share/weird_place/jflex'
+
+*Note* if you have installed the javac and java executables in strange locations,
+you will probably also need to uncomment and modify those paths as well.
+
+*Optional* I have included Beaver jar files for convenience, but you 
+may modify BEAVERJAR in test.sh to use a different jar file.
+
+Next, chmod +x test.sh and run via:
+    ./test.sh <filename>
+where <filename> is a path to a cool program. For example:
+    ./test.sh cool_programs/basic.cool.cool
+The script will compile the parser, followed by the scanner,
+and then run everything and build the AST. The AST will be 
+printed to the console (stdout) in the form of a JSON string.
+
+Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu

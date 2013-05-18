@@ -1,0 +1,425 @@
+%import "beaver.*";
+%import "ast.*";
+%import "java.util.ArrayList";
+
+%class "CoolParser";
+
+%terminals		/* Keywords */ 
+			CLASS,  EXTENDS,
+			VAR, OVERRIDE, DEF, NATIVE, 
+			NEW, NULL, THIS, CASE, MATCH, 
+			IF, ELSE, WHILE, SUPER, 
+			/* Punctuation */ 
+			LPAREN, RPAREN,   /* ( ) */
+			LBRACE, RBRACE,   /* { } */ 
+			COLON, COMMA,  	  /* : ,  */ 
+		 	ASSIGN, SEMI,     /* = ;  */ 
+			ARROW, DOT,       /* => . */
+			PLUS, MINUS, TIMES, DIV,  /* + - * / */
+			LE, LT, EQUALS, NOT,      /* <= < == ! */ 
+			/* Note Cool uses capitalization to distinguish 
+			 * type names from other identifiers. 
+			 */ 
+			TYPE, ID, 
+			/* Literals */ 
+			INTEGER, STRING, BOOLEAN;
+
+%typeof INTEGER, BOOLEAN, TYPE, ID, STRING = "String";
+%typeof optoverride = "String";
+%typeof program = "Program";
+%typeof classdecl = "ClassDecl";
+%typeof varformals, varformalsdecl = "ClassVarFormals";
+%typeof classdeclopts, extension = "Extension";
+%typeof actuals, actualsdecl = "Actuals";
+%typeof classbody, featuredecl = "ClassBody";
+%typeof feature = "Feature";
+%typeof nativeortype = "NativeOrType";
+%typeof exprornative = "ExprOrNative";
+%typeof formals, formalsdecl = "MethodVarFormals";
+%typeof block, blockdecl = "Block";
+%typeof match, comparison, dotcall, equals, timesdiv, plusminus, notneg, expr = "Expr";
+%typeof cases, casesdecl = "Cases";
+%typeof idornull = "IdOrNull";
+
+%goal program;
+
+/* <<program>> */
+program                         = program.p classdecl.c
+                                  {:
+                                      p.add(c);
+                                      return _symbol_p;
+                                  :}
+                                | classdecl.c 
+                                  {: 
+                                      ArrayList classlist = new ArrayList();
+                                      classlist.add(c);
+                                      return new Program(classlist);
+                                  :};
+
+/* <<classdecl>> */
+classdecl                       = CLASS TYPE.t varformals.vf classdeclopts.ext classbody.b
+                                  {:
+                                      return new ClassDecl(t, vf, ext, b);
+                                  :};
+
+classdeclopts                   = EXTENDS extension.ext
+                                  {:
+                                      return _symbol_ext;
+                                  :}
+                                | empty
+                                  {:
+                                      return new Extension();
+                                  :};
+
+extension                       = TYPE.t actuals.a
+                                  {:
+                                      return new Extension(t, a);
+                                  :}
+                                | NATIVE
+                                  {:
+                                      return new Extension("native");
+                                  :};
+
+/* <<varformals>> */
+varformals                      = LPAREN varformalsdecl.vf RPAREN
+                                  {:
+                                      return _symbol_vf;
+                                  :}
+                                | LPAREN RPAREN
+                                  {:
+                                      return new ClassVarFormals();
+                                  :};
+
+varformalsdecl                  = varformalsdecl.vf COMMA VAR ID.i COLON TYPE.t
+                                  {:
+                                      vf.add(new ClassFormal(i,t));
+                                      return _symbol_vf;
+                                  :}
+                                | VAR ID.i COLON TYPE.t
+                                  {:
+                                      ArrayList fvlist = new ArrayList();
+                                      fvlist.add(new ClassFormal(i,t));
+                                      return new ClassVarFormals(fvlist);
+                                  :};
+
+/* <<classbody>> */
+classbody                       = LBRACE featuredecl.b RBRACE
+                                  {:  
+                                      return _symbol_b;
+                                  :}
+                                | LBRACE RBRACE
+                                  {:
+                                      return new ClassBody();
+                                  :};
+
+featuredecl                     = featuredecl.b feature.f
+                                  {:
+                                      b.add(f);
+                                      return _symbol_b;
+                                  :}
+                                | feature.f
+                                  {:
+                                      ArrayList featlist = new ArrayList();
+                                      featlist.add(f);
+                                      return new ClassBody(featlist);
+                                  :};
+
+/* <<feature>> */
+feature                         = optoverride.o DEF ID.i formals.fo COLON TYPE.t ASSIGN exprornative.e SEMI
+                                  {:
+                                      return new Feature(new MethodFeature(o, i, fo, t, e));
+                                  :}
+                                | VAR ID.i nativeortype.nt SEMI
+                                  {:
+                                      return new Feature(new VarFeature(i, nt));
+                                  :}
+                                | LBRACE block.bl RBRACE SEMI
+                                  {:
+                                      return new Feature(new BlockFeature(bl));
+                                  :};
+
+optoverride                     = OVERRIDE.o
+                                  {:
+                                      return o;
+                                  :}
+                                | empty
+                                  {:
+                                      return new Symbol("");
+                                  :};
+
+exprornative                    = expr.e
+                                  {:
+                                      return new ExprOrNative(e);
+                                  :}
+                                | NATIVE
+                                  {:
+                                      return new ExprOrNative();
+                                  :};
+
+nativeortype                    = ASSIGN NATIVE
+                                  {:
+                                      return new NativeOrType();
+                                  :}
+                                | COLON TYPE.t ASSIGN expr.e
+                                  {:
+                                      return new NativeOrType(t,e);
+                                  :};
+
+/* <<formals>> */
+formals                         = LPAREN formalsdecl.fo RPAREN
+                                  {:
+                                      return _symbol_fo;
+                                  :}
+                                | LPAREN RPAREN
+                                  {:
+                                      return new MethodVarFormals();
+                                  :};
+
+formalsdecl                     = formalsdecl.fo COMMA ID.i COLON TYPE.t
+                                  {:
+                                      fo.add(new MethodFormal(i, t));
+                                      return _symbol_fo;
+                                  :}
+                                | ID.i COLON TYPE.t
+                                  {:
+                                      ArrayList mflist = new ArrayList();
+                                      mflist.add(new MethodFormal(i, t));
+                                      return new MethodVarFormals(mflist);
+                                  :};
+
+/* <<actuals>> */
+actuals                         = LPAREN actualsdecl.a RPAREN
+                                  {:
+                                      return _symbol_a;
+                                  :}
+                                | LPAREN RPAREN
+                                  {:
+                                      return new Actuals(new ArrayList());
+                                  :};
+
+actualsdecl                     = actualsdecl.a COMMA expr.e
+                                  {:
+                                      a.add(e);
+                                      return _symbol_a;
+                                  :}
+                                | expr.e
+                                  {:
+                                      ArrayList exprlist = new ArrayList();
+                                      exprlist.add(e);
+                                      return new Actuals(exprlist);
+                                  :};
+
+/* <<block>> */
+block                           = empty
+                                  {:
+                                      return new Block();
+                                  :}
+                                | expr.e
+                                  {:
+                                      ArrayList bi = new ArrayList();
+                                      bi.add(new BlockItem(e));
+                                      return new Block(bi);
+                                  :}
+                                | blockdecl.bd expr.e
+                                  {:
+                                      bd.add(new BlockItem(e));
+                                      return _symbol_bd;
+                                  :};
+
+blockdecl                       = blockdecl.bd expr.e SEMI
+                                  {:
+                                      bd.add(new BlockItem(e));
+                                      return _symbol_bd;
+                                  :}
+                                | blockdecl.bd VAR ID.i COLON TYPE.t ASSIGN expr.e SEMI
+                                  {:
+                                      bd.add(new BlockItem(i, t, e));
+                                      return _symbol_bd;
+                                  :}
+                                | expr.e SEMI
+                                  {:
+                                      ArrayList bi = new ArrayList();
+                                      bi.add(new BlockItem(e));
+                                      return new Block(bi);
+                                  :}
+                                | VAR ID.i COLON TYPE.t ASSIGN expr.e SEMI
+                                  {:
+                                      ArrayList bi = new ArrayList();
+                                      bi.add(new BlockItem(i, t, e));
+                                      return new Block(bi);
+                                  :};
+
+/* <<expr>> */
+/* precedence:
+        . 
+        ! -# 
+        * / 
+        + - 
+        == 
+        <= < 
+        match 
+        if while 
+        =
+*/
+expr                            = ID.id ASSIGN expr.e
+                                  {:
+                                      return new AssignExpr(id, e);
+                                  :}
+                                | ifwhile;
+
+/* if and while */
+ifwhile                         = IF LPAREN expr.e1 RPAREN expr.e2 ELSE expr.e3
+                                  {:
+                                      return new IfExpr(e1, e2, e3);
+                                  :}
+                                | WHILE LPAREN expr.e4 RPAREN expr.e5
+                                  {:
+                                      return new WhileExpr(e4, e5);
+                                  :}
+                                | match;
+
+/* match */
+match                           = match.m MATCH cases.c
+                                  {:
+                                      return new MatchExpr(m, c);
+                                  :}
+                                | comparison;
+
+/* <= <  */ 
+comparison                      = comparison.c1 LE equals.e1
+                                  {:
+                                      return new LeExpr(c1, e1);
+                                  :}
+                                | comparison.c2 LT equals.e2
+                                  {:
+                                      return new LtExpr(c2, e2);
+                                  :}
+                                | equals;
+
+/* == */
+equals                          = equals.e EQUALS plusminus.p
+                                  {:
+                                      return new EqualsExpr(e, p);
+                                  :}
+                                | plusminus;
+
+/* + - */
+plusminus                       = plusminus.p1 PLUS timesdiv.t1
+                                  {:
+                                      return new PlusExpr(p1, t1);
+                                  :}
+                                | plusminus.p2 MINUS timesdiv.t2
+                                  {:
+                                      return new MinusExpr(p2, t2);
+                                  :}
+                                | timesdiv;
+
+/* * /  */
+timesdiv                        = timesdiv.t1 TIMES notneg.n1
+                                  {:
+                                      return new MultExpr(t1, n1);
+                                  :}
+                                | timesdiv.t2 DIV notneg.n2
+                                  {:
+                                      return new DivExpr(t2, n2);
+                                  :}
+                                | notneg;
+
+/* ! -# */
+notneg                          = NOT notneg.n1
+                                  {:
+                                      return new NotExpr(n1);
+                                  :}
+                                | MINUS notneg.n2
+                                  {:
+                                      return new NegExpr(n2);
+                                  :}
+                                | dotcall;
+
+/* . */
+dotcall                         = dotcall.d DOT ID.id actuals.a
+                                  {:
+                                      return new DotExpr(d, id, a);
+                                  :}
+                                | primary;
+
+/* <<primary>> */
+primary                         = SUPER DOT ID.id actuals.a
+                                  {:
+                                      return new PrimaryExpr("supercall", id, a);
+                                  :}
+                                | ID.id actuals.a
+                                  {:
+                                      return new PrimaryExpr("call", id, a);
+                                  :}
+                                | NEW TYPE.t actuals.a
+                                  {:
+                                      return new PrimaryExpr("new", t, a);
+                                  :}
+                                | LBRACE block.bl RBRACE 
+                                  {:
+                                      return new PrimaryExpr("block", bl);
+                                  :}
+                                | LPAREN expr.e RPAREN
+                                  {:
+                                      return new PrimaryExpr("parenexpr", e);
+                                  :}
+                                | NULL
+                                  {:
+                                      return new PrimaryExpr("null");
+                                  :}
+                                | LPAREN RPAREN
+                                  {:
+                                      return new PrimaryExpr("empty");
+                                  :}
+                                | ID.id
+                                  {:
+                                      return new PrimaryExpr("id", id);
+                                  :}
+                                | INTEGER.i
+                                  {:
+                                      return new PrimaryExpr("integer", i);
+                                  :}
+                                | STRING.s
+                                  {:
+                                      return new PrimaryExpr("string", s);
+                                  :}
+                                | BOOLEAN.b
+                                  {:
+                                      return new PrimaryExpr("boolean", b);
+                                  :}
+                                | THIS
+                                  {:
+                                      return new PrimaryExpr("this");
+                                  :};
+
+/* <<cases>> */
+cases                           = LBRACE casesdecl.cd RBRACE
+                                  {:
+                                      return _symbol_cd;
+                                  :};
+
+casesdecl                       = casesdecl.cd CASE idornull.ion ARROW block.bl
+                                  {:
+                                      cd.add(new Case(ion, bl));
+                                      return _symbol_cd;
+                                  :}
+                                | CASE idornull.ion ARROW block.bl
+                                  {:
+                                      ArrayList clist = new ArrayList();
+                                      clist.add(new Case(ion, bl));
+                                      return new Cases(clist);
+                                  :};
+
+idornull                        = ID.id COLON TYPE.t
+                                  {:
+                                      return new IdOrNull(id, t);
+                                  :}
+                                | NULL
+                                  {:
+                                      return new IdOrNull();
+                                  :};
+
+/* Improve readability of empty RHS productions */
+empty =  ;
+
