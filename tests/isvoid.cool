@@ -1,0 +1,5 @@
+class Main inherits IO {
+	a : Object;
+	
+	main() : Object {{ if isvoid a then out_string("a is void\n") else out_string("a is not void\n") fi; }};
+};

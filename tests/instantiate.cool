@@ -1,0 +1,37 @@
+class Main {
+	io : IO := new IO;
+	a : A := new C;
+	b : B := new B;
+	e : A := new E;
+	main() : Object {{ io.out_string("Hello world!\n"); io.out_string(a.get()); io.out_string(b.get()); io.out_string(e.get()); }};
+};
+
+class A {
+	a : String := "A\n";
+	get() : String {{ a; }};
+};
+
+class C inherits A {
+	c : String := "C\n";
+	get() : String {{ c; }};
+	method() : String {{ "String!\n"; }};
+};
+
+class B {
+	b : String := "B\n";
+	get() : String {{ b; }};
+};
+
+class D inherits A {
+	
+};
+
+class E inherits C {
+	z : String := "Hello world\n";
+	get() : String {{ z; }};
+	woot() : String {{ "Test\n"; }};
+};
+
+class Q inherits IO {
+	
+};
