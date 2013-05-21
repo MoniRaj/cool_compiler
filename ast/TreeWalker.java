@@ -1,9 +1,36 @@
+/**
+ *
+ * TreeWalker.java
+ *
+ * A walker that traverses the AST and handles typechecking.
+ * Checks include:
+ *      1. identify classes
+ *      2. determine inheritance hierarchy and check cycles
+ *      3. identify attributes and methods
+ *      4. check attribute inheritance
+ *      5. check method inheritance
+ *      6. typecheck attributes
+ *      7. typecheck methods
+ *
+ * Much of this work is inspired (or directly written) by 
+ *      Nick Chaimov (nchaimov@uoregon.edu), Winter 2010
+ *
+ * Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
+ *
+ */
 
 package ast;
+
+import java.text.MessageFormat;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
+import beaver.*;
+
 public class TreeWalker {
         
-    //list of classes
-    //TODO needs to have Environment obj
 
     protected Environment env;
     protected boolean debug;
@@ -46,11 +73,15 @@ public class TreeWalker {
     public int depth = 0;
 
     public void print(String val) {
-        System.out.print(val);
+        if (debug) {
+            System.out.print(val);
+        }
     }
 
     public void print(int val) {
-        System.out.print(val);
+        if (debug) {
+            System.out.print(val);
+        }
     }
 
 
@@ -66,11 +97,16 @@ Visit Methods below
     public void visit(Program p) {
         print("{ ");
         print("\"Program\": { ");
-        //TODO 1. build class hierarchy
-        //  for classdecl in program:
-        //      final Environment.CoolClass new_class = new E.CC(classdecl.type)
-        //      new_class.node = classdecl //TODO check that node works correctly
-        //      env.addClass(new_class);
+        
+        //1. build class hierarchy
+        for (int i = 0; i < p.classlist.size(); i++) {
+            ClassDecl cls = p.classlist.get(i);
+            final Environment.CoolClass new_class = new Environment.CoolClass(
+                    cls.type);
+            new_class.node = cls; //TODO make sure this works correctly
+            env.addClass(new_class);
+        }
+        log("Added classes to class map");
         
         //TODO 2. check parents of classes
             //  for classdecl in program:
@@ -78,6 +114,38 @@ Visit Methods below
             //      classdecl's parent must exist
             //      cur_class = env.getClass(classdecl.type)
             //      set cur_class parent = to correct parent
+
+        //TODO 3. check hierarchy for cycles
+        final HashSet<Environment.CoolClass> red = 
+                new HashSet<Environment.CoolClass>();
+        final HashSet<Environment.CoolClass> green = 
+                new HashSet<Environment.CoolClass>();
+        green.add(ANY);
+        final Iterator<Entry<String, Environment.CoolClass>> it = env.class_map
+                .entrySet().iterator();
+        while (it.hasNext()) {
+            final Entry<String, Environment.CoolClass> entry = it.next();
+            Environment.CoolClass curr_class = entry.getValue();
+            while (!green.contains(curr_class)) {
+                if (red.contains(curr_class)) {
+                    throw new TypeCheckException(
+                            "Class hierarchy is not a tree.");
+                }
+                else {
+                    red.add(curr_class);
+                    curr_class = curr_class.parent;
+                }
+            }
+            final Iterator<Environment.CoolClass> reds = red.iterator();
+            Environment.CoolClass red_class;
+            while (reds.hasNext()) {
+                red_class = reds.next();
+                reds.remove();
+                green.add(red_class);
+            }
+            red.clear();
+        }
+        log("Class hierarchy contains no cycles.");
 
         for (int i = 0; i < p.classlist.size(); i++) {
             print("\"class\": { ");
