@@ -1,10 +1,50 @@
 
 package ast;
 public class TreeWalker {
-    
+        
     //list of classes
+    //TODO needs to have Environment obj
+
+    protected Environment env;
+    protected boolean debug;
+
+    protected final Environment.CoolClass ANY;
+    protected final Environment.CoolClass UNIT;
+    protected final Environment.CoolClass ARRAYANY;
+    protected final Environment.CoolClass SYMBOL;
+    protected final Environment.CoolClass BOOLEAN;
+    protected final Environment.CoolClass INT;
+    protected final Environment.CoolClass STRING;
+    protected final Environment.CoolClass IO;
+
+    public static class TypeCheckException extends Exception {
+
+        public TypeCheckException(final String msg) {
+            super(msg);
+        }
+    }
     
+    public TreeWalker(final Node root, final boolean debug)
+            throws Environment.EnvironmentException {
+        this.root = root;
+        this.debug = debug;
+        env = new Environment(debug);
+        ANY = env.getClass("Any");
+        ARRAYANY = env.getClass("ArrayAny");
+        BOOLEAN = env.getClass("Boolean");
+        UNIT = env.getClass("Unit");
+        SYMBOL = env.getClass("Symbol");
+        INT = env.getClass("Int");
+        STRING = env.getClass("String");
+        IO = env.getClass("IO");
+    }
+
+    public Environment getEnvironment() {
+        return env;
+    }
+
     public int depth = 0;
+
     public void print(String val) {
         System.out.print(val);
     }
@@ -13,13 +53,31 @@ public class TreeWalker {
         System.out.print(val);
     }
 
+
+    public void log(final String msg) {
+        if (debug) {
+            System.err.println(msg);
+        }
+    }
+
+/*
+Visit Methods below
+*/
     public void visit(Program p) {
         print("{ ");
         print("\"Program\": { ");
-        //build class hierarchy
-        //  for class in program:
-        //      figure out how to represent extensions
-        //check fo
+        //TODO 1. build class hierarchy
+        //  for classdecl in program:
+        //      final Environment.CoolClass new_class = new E.CC(classdecl.type)
+        //      new_class.node = classdecl //TODO check that node works correctly
+        //      env.addClass(new_class);
+        
+        //TODO 2. check parents of classes
+            //  for classdecl in program:
+            //      classdecl can't extend basic classes (check which ones it can't extend)
+            //      classdecl's parent must exist
+            //      cur_class = env.getClass(classdecl.type)
+            //      set cur_class parent = to correct parent
 
         for (int i = 0; i < p.classlist.size(); i++) {
             print("\"class\": { ");
@@ -40,7 +98,8 @@ public class TreeWalker {
             visit(c.extension);
             print(" },");
         }
-        //add to class list (make sure to add extension information too)
+
+
         print(" \"classbody\": { ");
         visit(c.classbody);
         print(" } ");
@@ -355,4 +414,15 @@ public class TreeWalker {
         visit(c.block);
         print(" } ");
     }
+
+/*
+Helper Methods below
+*/
+
+    protected Environment.CoolClass setType(final Environment.CoolClass cls,
+            final Node node) {
+        node.type = cls;
+        return cls;
+    }
+
 }

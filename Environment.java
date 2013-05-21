@@ -26,7 +26,7 @@ public class Environment {
     public static class CoolAttribute {
         public String name;
         public CoolClass type;
-        public Node node;
+        public Node node; //check this
         public CoolClass owner;
 
         public int index = -1;
@@ -49,7 +49,7 @@ public class Environment {
         public List<CoolMethod> method_list = new LinkedList<CoolMethod>();
         public HashMap<String, CoolAttribute> attributes = new HashMap<String, CoolAttribute>();
         public List<CoolAttribute> attr_list = new LinkedList<CoolAttribute>();
-        public Node node;
+        public Node node; //check this
         public boolean builtin = false;
         public boolean attr_inherit_done = false;
         public boolean method_inherit_done = false;
@@ -85,7 +85,7 @@ public class Environment {
         public String name;
         public List<CoolAttribute> arguments = new LinkedList<CoolAttribute>();
         public CoolClass type;
-        public Node node;
+        public Node node; //check this
         public CoolClass owner;
         public String builtin_implementation = null;
 

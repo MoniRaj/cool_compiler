@@ -1,3 +1,23 @@
+/**
+ *  TypeChecker.java
+ *
+ *  Contains the code necessary to perform the type checking 
+ *  portion of compilation of Cool programs. Checks include:
+ *      1. identify classes
+ *      2. determine inheritance hierarchy and check cycles
+ *      3. identify attributes and methods
+ *      4. check attribute inheritance
+ *      5. check method inheritance
+ *      6. typecheck attributes 
+ *      7. typecheck methods 
+ *
+ *  @author: Nick Chaimov (nchaimov@uoregon.edu)
+ *  @date: Winter 2010
+ *
+ *  Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
+ *
+ */
+
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,32 +29,37 @@ import ast.*;
 
 public class TypeChecker {
 
-    protected Symbol root;
+    protected Node root;
     protected Environment env;
 
     protected boolean debug;
 
-    protected final Environment.CoolClass OBJECT;
-    protected final Environment.CoolClass BOOL;
+    protected final Environment.CoolClass ANY;
+    protected final Environment.CoolClass UNIT;
+    protected final Environment.CoolClass ARRAYANY;
+    protected final Environment.CoolClass SYMBOL;
+    protected final Environment.CoolClass BOOLEAN;
     protected final Environment.CoolClass INT;
     protected final Environment.CoolClass STRING;
     protected final Environment.CoolClass IO;
 
     public static class TypeCheckException extends Exception {
-        private static final long serialVersionUID = -7774893843820229667L;
 
         public TypeCheckException(final String msg) {
             super(msg);
         }
     }
-
-    public TypeChecker(final ASTnode root, final boolean debug)
+//GOOD
+    public TypeChecker(final Node root, final boolean debug)
             throws Environment.EnvironmentException {
         this.root = root;
         this.debug = debug;
         env = new Environment(debug);
-        OBJECT = env.getClass("Object");
-        BOOL = env.getClass("Bool");
+        ANY = env.getClass("Any");
+        ARRAYANY = env.getClass("ArrayAny");
+        BOOLEAN = env.getClass("Boolean");
+        UNIT = env.getClass("Unit");
+        SYMBOL = env.getClass("Symbol");
         INT = env.getClass("Int");
         STRING = env.getClass("String");
         IO = env.getClass("IO");
@@ -94,16 +119,16 @@ public class TypeChecker {
     /*
      * DETERMINE CLASS HIERARCHY
      */
-
+/*
     // First pass: identify class names
-    public void identifyClasses(final ASTnode node)
+    public void identifyClasses(final Node node)
             throws Environment.EnvironmentException, TypeCheckException {
         if (node != null) {
             switch (node.kind) {
-            case (sym.CLASS):
+            case (Terminals.CLASS):
                 addClass((String) node.value, node);
                 break;
-            case (sym.SEMI):
+            case (Terminals.SEMI):
                 identifyClasses(node.left);
                 identifyClasses(node.right);
                 break;
@@ -116,14 +141,14 @@ public class TypeChecker {
             }
         }
     }
-
+*/
     // Second pass: identify class hierarchy
-    public void identifyParents(final ASTnode node)
+    public void identifyParents(final Node node)
             throws Environment.EnvironmentException, TypeCheckException {
         if (node != null) {
             switch (node.kind) {
-            case (sym.CLASS):
-                if (node.left != null && node.left.kind == sym.INHERITS) {
+            case (Terminals.CLASS):
+                if (node.left != null && node.left.kind == Terminals.INHERITS) {
                     final Environment.CoolClass thisClass = env
                             .getClass((String) node.value);
                     if (node.left.value.equals("Int")
@@ -141,7 +166,7 @@ public class TypeChecker {
                 } else {
                     final Environment.CoolClass thisClass = env
                             .getClass((String) node.value);
-                    final Environment.CoolClass parentClass = OBJECT;
+                    final Environment.CoolClass parentClass = ANY;
                     thisClass.parent = parentClass;
                     log(MessageFormat
                             .format(
@@ -149,7 +174,7 @@ public class TypeChecker {
                                     thisClass, parentClass));
                 }
                 break;
-            case (sym.SEMI):
+            case (Terminals.SEMI):
                 identifyParents(node.left);
                 identifyParents(node.right);
                 break;
@@ -168,7 +193,7 @@ public class TypeChecker {
             throws Environment.EnvironmentException, TypeCheckException {
         final HashSet<Environment.CoolClass> red = new HashSet<Environment.CoolClass>();
         final HashSet<Environment.CoolClass> green = new HashSet<Environment.CoolClass>();
-        green.add(OBJECT);
+        green.add(ANY);
         final Iterator<Entry<String, Environment.CoolClass>> iter = env.classes
                 .entrySet().iterator();
         while (iter.hasNext()) {
@@ -214,7 +239,7 @@ public class TypeChecker {
     }
 
     protected void getMethodsAndAttributes(
-            final Environment.CoolClass curClass, final ASTnode node)
+            final Environment.CoolClass curClass, final Node node)
             throws TypeCheckException, Environment.EnvironmentException {
         if (node != null) {
             switch (node.kind) {
@@ -243,7 +268,7 @@ public class TypeChecker {
                 node.type = returnType;
                 break;
             }
-            case sym.SEMI: {
+            case Terminals.SEMI: {
                 this.getMethodsAndAttributes(curClass, node.left);
                 this.getMethodsAndAttributes(curClass, node.right);
                 break;
@@ -263,13 +288,13 @@ public class TypeChecker {
     }
 
     private void inheritAttributes(final Environment.CoolClass c) {
-        if (!c.attrInheritDone && c != OBJECT) {
+        if (!c.attrInheritDone && c != ANY) {
             log("Checking " + c);
             inheritAttributes(c.parent);
             final LinkedList<Environment.CoolClass> q = new LinkedList<Environment.CoolClass>();
             q.push(c);
             Environment.CoolClass p = c.parent;
-            while (p != OBJECT) {
+            while (p != ANY) {
                 q.push(p);
                 p = p.parent;
             }
@@ -307,13 +332,13 @@ public class TypeChecker {
     }
 
     private void inheritMethods(final Environment.CoolClass c) {
-        if (!c.methodInheritDone && c != OBJECT) {
+        if (!c.methodInheritDone && c != ANY) {
             log("Checking " + c);
             inheritMethods(c.parent);
             final LinkedList<Environment.CoolClass> q = new LinkedList<Environment.CoolClass>();
             q.push(c);
             Environment.CoolClass p = c.parent;
-            while (p != OBJECT) {
+            while (p != ANY) {
                 q.push(p);
                 p = p.parent;
             }
@@ -347,18 +372,18 @@ public class TypeChecker {
     }
 
     private void processMethodArguments(final Environment.CoolMethod method,
-            final ASTnode node) throws Environment.EnvironmentException,
+            final Node node) throws Environment.EnvironmentException,
             TypeCheckException {
         if (node != null) {
             switch (node.kind) {
-            case sym.COLON: {
+            case Terminals.COLON: {
                 final String name = (String) node.left.value;
                 final Environment.CoolClass type = env
                         .getClass((String) node.right.value);
                 method.arguments.add(new Environment.CoolAttribute(name, type));
                 break;
             }
-            case sym.COMMA: {
+            case Terminals.COMMA: {
                 processMethodArguments(method, node.left);
                 processMethodArguments(method, node.right);
                 break;
@@ -453,28 +478,28 @@ public class TypeChecker {
     }
 
     public Environment.CoolClass check(final Environment.CoolClass curClass,
-            final ASTnode node) throws Environment.EnvironmentException,
+            final Node node) throws Environment.EnvironmentException,
             TypeCheckException {
         if (node != null) {
             switch (node.kind) {
 
             // LITERALS
-            case sym.TRUE:
-            case sym.FALSE:
-                return setType(BOOL, node);
-            case sym.INTLIT:
+            case Terminals.TRUE:
+            case Terminals.FALSE:
+                return setType(BOOLEAN, node);
+            case Terminals.INTLIT:
                 return setType(INT, node);
-            case sym.STRINGLIT:
+            case Terminals.STRINGLIT:
                 return setType(STRING, node);
 
                 // IDENTIFIER
-            case sym.ID:
+            case Terminals.ID:
                 return setType(env
                         .lookupAttrType(curClass, (String) node.value), node);
 
                 // OPERATORS
-            case sym.ASSIGN: {
-                if (node.left.kind != sym.ID) {
+            case Terminals.ASSIGN: {
+                if (node.left.kind != Terminals.ID) {
                     throw new TypeCheckException(
                             MessageFormat
                                     .format(
@@ -508,11 +533,11 @@ public class TypeChecker {
                 }
             }
 
-            case sym.NEW: {
+            case Terminals.NEW: {
                 return setType(env.getClass((String) node.value), node);
             }
 
-            case sym.DOT: {
+            case Terminals.DOT: {
                 typecheckMethodArguments(curClass, node.right);
                 Environment.CoolClass containingClass;
                 if (node.left != null) {
@@ -523,7 +548,7 @@ public class TypeChecker {
                 }
 
                 if (node.center != null) {
-                    if (node.center.kind != sym.TYPEID) {
+                    if (node.center.kind != Terminals.TYPEID) {
                         throw new TypeCheckException(
                                 MessageFormat
                                         .format(
@@ -592,9 +617,9 @@ public class TypeChecker {
                 return setType(method.type, node);
             }
 
-            case sym.IF: {
+            case Terminals.IF: {
                 check(curClass, node.left);
-                if (node.left.type != BOOL) {
+                if (node.left.type != BOOLEAN) {
                     throw new TypeCheckException(MessageFormat.format(
                             "If condition must be of type Bool, but {0} found",
                             node.left.type));
@@ -609,7 +634,7 @@ public class TypeChecker {
                 return setType(unionType, node);
             }
 
-            case sym.SEMI: {
+            case Terminals.SEMI: {
                 // Check the mandatory first expression
                 check(curClass, node.left);
                 Environment.CoolClass lastType = node.left.type;
@@ -622,7 +647,7 @@ public class TypeChecker {
                 return setType(lastType, node);
             }
 
-            case sym.LET: {
+            case Terminals.LET: {
                 final int numVars = addLetIntroductions(curClass, node.left, 0);
                 log(MessageFormat
                         .format(
@@ -639,7 +664,7 @@ public class TypeChecker {
                 return setType(node.right.type, node);
             }
 
-            case sym.CASE: {
+            case Terminals.CASE: {
                 check(curClass, node.left);
                 List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>();
                 list = getCaseTypes(curClass, node.right, list);
@@ -656,9 +681,9 @@ public class TypeChecker {
                 return setType(caseClass, node);
             }
 
-            case sym.WHILE: {
+            case Terminals.WHILE: {
                 check(curClass, node.left);
-                if (node.left.type != BOOL) {
+                if (node.left.type != BOOLEAN) {
                     throw new TypeCheckException(
                             MessageFormat
                                     .format(
@@ -666,26 +691,26 @@ public class TypeChecker {
                                             node.left.type));
                 }
                 check(curClass, node.right);
-                return setType(OBJECT, node);
+                return setType(ANY, node);
             }
 
-            case sym.ISVOID: {
+            case Terminals.ISVOID: {
                 check(curClass, node.left);
-                return setType(BOOL, node);
+                return setType(BOOLEAN, node);
             }
 
-            case sym.NOT: {
+            case Terminals.NOT: {
                 check(curClass, node.left);
-                if (node.left.type != BOOL) {
+                if (node.left.type != BOOLEAN) {
                     throw new TypeCheckException(MessageFormat.format(
                             "Argument to NOT must be Bool, but found {0}",
                             node.left.type));
                 }
-                return setType(BOOL, node);
+                return setType(BOOLEAN, node);
             }
 
-            case sym.LT:
-            case sym.LEQ: {
+            case Terminals.LT:
+            case Terminals.LEQ: {
                 check(curClass, node.left);
                 check(curClass, node.right);
                 if (node.left.type != INT) {
@@ -698,13 +723,13 @@ public class TypeChecker {
                             "Right argument of comparison must be Int, but found"
                                     + node.left.type);
                 }
-                return setType(BOOL, node);
+                return setType(BOOLEAN, node);
             }
 
-            case sym.MINUS:
-            case sym.DIV:
-            case sym.TIMES:
-            case sym.PLUS: {
+            case Terminals.MINUS:
+            case Terminals.DIV:
+            case Terminals.TIMES:
+            case Terminals.PLUS: {
                 check(curClass, node.left);
                 check(curClass, node.right);
                 if (node.left.type != INT || node.right.type != INT) {
@@ -715,15 +740,15 @@ public class TypeChecker {
                 return setType(INT, node);
             }
 
-            case sym.EQ: {
+            case Terminals.EQ: {
                 check(curClass, node.left);
                 check(curClass, node.right);
 
                 if ((node.left.type == INT && node.right.type != INT)
-                        || (node.left.type == BOOL && node.right.type != BOOL)
+                        || (node.left.type == BOOLEAN && node.right.type != BOOLEAN)
                         || (node.left.type == STRING && node.right.type != STRING)
                         || (node.right.type == INT && node.left.type != INT)
-                        || (node.right.type == BOOL && node.left.type != BOOL)
+                        || (node.right.type == BOOLEAN && node.left.type != BOOLEAN)
                         || (node.right.type == STRING && node.left.type != STRING)) {
                     throw new TypeCheckException(
                             MessageFormat
@@ -732,10 +757,10 @@ public class TypeChecker {
                                             node.left.type, node.right.type));
                 }
 
-                return setType(BOOL, node);
+                return setType(BOOLEAN, node);
             }
 
-            case sym.NEG: {
+            case Terminals.NEG: {
                 check(curClass, node.left);
                 if (node.left.type != INT) {
                     throw new TypeCheckException(
@@ -754,14 +779,14 @@ public class TypeChecker {
     }
 
     private List<Environment.CoolClass> getCaseTypes(
-            final Environment.CoolClass curClass, final ASTnode node,
+            final Environment.CoolClass curClass, final Node node,
             final List<Environment.CoolClass> list)
             throws Environment.EnvironmentException, TypeCheckException {
         if (node != null) {
-            if (node.kind == sym.SEMI) {
+            if (node.kind == Terminals.SEMI) {
                 getCaseTypes(curClass, node.left, list);
                 getCaseTypes(curClass, node.right, list);
-            } else if (node.kind == sym.RIGHTARROW) {
+            } else if (node.kind == Terminals.RIGHTARROW) {
                 final String name = (String) node.left.left.value;
                 if (name.equals("self")) {
                     throw new TypeCheckException(
@@ -787,16 +812,16 @@ public class TypeChecker {
     }
 
     private int addLetIntroductions(final Environment.CoolClass curClass,
-            final ASTnode node, int numVars)
+            final Node node, int numVars)
             throws Environment.EnvironmentException, TypeCheckException {
 
         if (node != null) {
             switch (node.kind) {
-            case sym.COMMA:
+            case Terminals.COMMA:
                 numVars += addLetIntroductions(curClass, node.left, 0);
                 numVars += addLetIntroductions(curClass, node.right, 0);
                 break;
-            case sym.ASSIGN: {
+            case Terminals.ASSIGN: {
                 numVars += 1;
                 final Environment.CoolClass type = env
                         .getClass((String) node.left.right.value);
@@ -837,10 +862,10 @@ public class TypeChecker {
     }
 
     private Environment.CoolClass checkSequence(
-            final Environment.CoolClass curClass, final ASTnode node)
+            final Environment.CoolClass curClass, final Node node)
             throws Environment.EnvironmentException, TypeCheckException {
         if (node != null) {
-            if (node.kind == sym.SEMI) {
+            if (node.kind == Terminals.SEMI) {
                 final Environment.CoolClass leftClass = checkSequence(curClass,
                         node.left);
                 final Environment.CoolClass rightClass = checkSequence(
@@ -858,10 +883,10 @@ public class TypeChecker {
         return null;
     }
 
-    private List<Environment.CoolClass> getArgumentTypes(final ASTnode node,
+    private List<Environment.CoolClass> getArgumentTypes(final Node node,
             final List<Environment.CoolClass> list) {
         if (node != null) {
-            if (node.kind == sym.COMMA) {
+            if (node.kind == Terminals.COMMA) {
                 getArgumentTypes(node.left, list);
                 getArgumentTypes(node.right, list);
             } else {
@@ -874,10 +899,10 @@ public class TypeChecker {
     }
 
     private void typecheckMethodArguments(final Environment.CoolClass curClass,
-            final ASTnode node) throws Environment.EnvironmentException,
+            final Node node) throws Environment.EnvironmentException,
             TypeCheckException {
         if (node != null) {
-            if (node.kind == sym.COMMA) {
+            if (node.kind == Terminals.COMMA) {
                 typecheckMethodArguments(curClass, node.left);
                 typecheckMethodArguments(curClass, node.right);
             } else {
@@ -892,7 +917,7 @@ public class TypeChecker {
 
     protected boolean moreGeneralOrEqualTo(final Environment.CoolClass c1,
             Environment.CoolClass c2) throws Environment.EnvironmentException {
-        while (c2 != c1 && c2 != OBJECT) {
+        while (c2 != c1 && c2 != ANY) {
             c2 = c2.parent;
         }
         return c2 == c1;
@@ -904,12 +929,12 @@ public class TypeChecker {
         final HashSet<Environment.CoolClass> alreadySeen = new HashSet<Environment.CoolClass>();
 
         while (true) {
-            if (alreadySeen.contains(c1) && c1 != OBJECT) {
+            if (alreadySeen.contains(c1) && c1 != ANY) {
                 return c1;
             }
             alreadySeen.add(c1);
             c1 = c1.parent;
-            if (alreadySeen.contains(c2) && c2 != OBJECT) {
+            if (alreadySeen.contains(c2) && c2 != ANY) {
                 return c2;
             }
             alreadySeen.add(c2);
@@ -919,14 +944,14 @@ public class TypeChecker {
             }
         }
     }
-
+/*
     protected Environment.CoolClass setType(final Environment.CoolClass cls,
-            final ASTnode node) {
+            final Node node) {
         node.type = cls;
         return cls;
-    }
-
-    protected void addClass(final String name, final ASTnode node)
+    }*/
+/*
+    protected void addClass(final String name, final Node node)
             throws Environment.EnvironmentException {
         final Environment.CoolClass newClass = new Environment.CoolClass(name);
         newClass.node = node;
@@ -938,5 +963,5 @@ public class TypeChecker {
             System.err.println(msg);
         }
     }
-
+*/
 }
