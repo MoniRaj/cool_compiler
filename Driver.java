@@ -16,7 +16,8 @@ import java.io.*;
 
 public class Driver {
     public static void main(String[] argv) 
-      throws IOException, CoolParser.Exception {
+      throws IOException, CoolParser.Exception,
+               EnvironmentException, TypeCheckException {
         try {
             if ( argv.length != 1 )
                 throw new Error( "Usage: java Driver <program>" );
@@ -25,8 +26,8 @@ public class Driver {
             CoolScanner scanner = new CoolScanner( new FileInputStream( argv[ 0 ] ) );
             Program program = (Program) parser.parse( scanner );
             System.out.println( "Parsed: "+argv[ 0 ]+" with no errors" );
-            TreeWalker walker = new TreeWalker();
-            program.accept(walker);
+            TreeWalker walker = new TreeWalker( program, true );
+            program.accept( walker );
         }
         catch ( Exception exception ) {
             System.out.println( "Exception in Main "
