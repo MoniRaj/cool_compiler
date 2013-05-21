@@ -110,7 +110,34 @@ Visit Methods below
         
         //TODO 2. check parents of classes
             //  for classdecl in program:
+              for (int i = 0; i < p.classlist.size(); i++) 
+              {
             //      classdecl can't extend basic classes (check which ones it can't extend)
+                    try{
+                        if ( p.classlist.get(i).extension.type != "") 
+                        {
+                            final Environment.CoolClass thisClass = env.getClass((String) p.classlist.get(i).extension.type);
+                            if (p.classlist.get(i).extension.type.equals("Int") || p.classlist.get(i).extension.type.equals("Bool") || p.classlist.get(i).extension.type.equals("String")) 
+                            {
+                                throw new TypeCheckException(MessageFormat.format("Class {0} inherits from prohibited class {1}",thisClass, p.classlist.get(i).extension.type));
+                            }
+                            final Environment.CoolClass parentClass = env.getClass((String) p.classlist.get(i).extension.type);
+                            thisClass.parent = parentClass;
+                            log(MessageFormat.format("Class {0} inherits from {1}", thisClass, parentClass));
+                        } 
+                        else 
+                        {
+                            final Environment.CoolClass thisClass = env.getClass((String) p.classlist.get(i).extension.type);
+                            final Environment.CoolClass parentClass = ANY;
+                            thisClass.parent = parentClass;
+                            log(MessageFormat.format("Class {0} has no listed parent, so assuming it inherits from {1}", thisClass, parentClass));
+                        }   
+                    }
+                    catch(TypeCheckException e )
+                    { 
+                        log(MessageFormat.format("Malformed AST; while checking classes, expected CLASS or SEMI, found {0}",Util.idToName(node.kind)));
+                    }
+                }
             //      classdecl's parent must exist
             //      cur_class = env.getClass(classdecl.type)
             //      set cur_class parent = to correct parent
