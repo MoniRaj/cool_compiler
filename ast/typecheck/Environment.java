@@ -176,6 +176,8 @@ public class Environment {
         // Set up default classes
         final CoolClass any_class = new CoolClass("Any");
         any_class.parent = any_class;
+        final CoolClass nothing_class = new CoolClass("Nothing", any_class);
+        final CoolClass null_class = new CoolClass("Null", any_class);
         final CoolClass io_class = new CoolClass("IO", any_class);
         final CoolClass arrayany_class = new CoolClass("ArrayAny", any_class);
         final CoolClass symbol_class = new CoolClass("Symbol", any_class);
@@ -192,6 +194,9 @@ public class Environment {
         int_class.builtin = true;
         string_class.builtin = true;
         boolean_class.builtin = true;
+        nothing_class.builtin = true;
+        null_class.builtin = true;
+        
 
         addClass(any_class);
         addClass(arrayany_class);
@@ -201,47 +206,93 @@ public class Environment {
         addClass(int_class);
         addClass(string_class);
         addClass(boolean_class);
+        
 
-        // Built-in methods of Object
-        //final CoolMethod abort = new CoolMethod("abort", any_class);
-        //final CoolMethod typeName = new CoolMethod("type_name", string_class);
-        // TODO Change this if we ever implement SELF_TYPE
-        //final CoolMethod copy = new CoolMethod("copy", any_class);
-
-        //addMethod(any_class, abort);
-        //addMethod(any_class, typeName);
-        //addMethod(any_class, copy);
-
+        // Built-in methods of ANY
+        final CoolMethod toString = new CoolMethod("toString", string_class);
+        final CoolMethod equals = new CoolMethod("equals", boolean_class);
+        equals.arguments.add(new CoolAttribute("x", any_class));
+          
+        addMethod(any_class, toString);
+        addMethod(any_class, equals);
+        
+        
         // Built-in methods of IO
-        // is_null
-        //final CoolMethod outString = new CoolMethod("out_string", any_class);
-        //outString.arguments.add(new CoolAttribute("x", string_class));
-        //final CoolMethod outInt = new CoolMethod("out_int", any_class);
-        //outInt.arguments.add(new CoolAttribute("x", int_class));
-        //final CoolMethod inString = new CoolMethod("in_string", string_class);
-        //final CoolMethod inInt = new CoolMethod("in_int", int_class);
+        final CoolMethod abort = new CoolMethod("abort", nothing_class);
+        abort.arguments.add(new CoolAttribute("message", string_class));
+        final CoolMethod out = new CoolMethod("out", io_class);
+        out.arguments.add(new CoolAttribute("arg", string_class));
+        final CoolMethod is_null = new CoolMethod("is_null", boolean_class);
+        is_null.arguments.add(new CoolAttribute("arg", any_class));
+        final CoolMethod out_any = new CoolMethod("out_any", io_class);
+        out_any.arguments.add(new CoolAttribute("arg", any_class));
+        final CoolMethod in = new CoolMethod("in", string_class);
+        final CoolMethod symbol = new CoolMethod("symbol", symbol_class);
+        symbol.arguments.add(new CoolAttribute("name", string_class));
+        final CoolMethod symbol_name = new CoolMethod("symbol_name", string_class);
+        symbol_name.arguments.add(new CoolAttribute("sym", symbol_class));
+        
+        addMethod(io_class, abort);
+        addMethod(io_class, out);
+        addMethod(io_class, is_null);
+        addMethod(io_class, out_any);
+        addMethod(io_class, in);
+        addMethod(io_class, symbol);
+        addMethod(io_class, symbol_name);
 
-        //addMethod(io_class, outString);
-        //addMethod(io_class, outInt);
-        //addMethod(io_class, inString);
-        //addMethod(io_class, inInt);
-
-        // Int has no built-in methods
-
-        // Built-in methods of String
-        //final CoolMethod length = new CoolMethod("length", int_class);
-        //final CoolMethod concat = new CoolMethod("concat", string_class);
-        //concat.arguments.add(new CoolAttribute("s", string_class));
-        //final CoolMethod substr = new CoolMethod("substr", string_class);
-        //substr.arguments.add(new CoolAttribute("i", int_class));
-        //substr.arguments.add(new CoolAttribute("l", int_class));
-
-        //addMethod(string_class, length);
-        //addMethod(string_class, concat);
-        //addMethod(string_class, substr);
-
-        // final CoolAttribute test = new CoolAttribute("lols", any_class);
-        // addAttribute(string_class, test);
+        // No Built-in methods of Unit
+        // No Built-in methods of Int
+        // No Built-in methods of Boolean
+      
+        
+        // Built-in Methods of String
+        final CoolAttribute length = new CoolAttribute("length", int_class);
+        final CoolMethod length = new CoolMethod("length", int_class);
+        final CoolMethod concat = new CoolMethod("concat", string_class);
+        concat.arguments.add(new CoolAttribute("arg", string_class));
+        final CoolMethod substring = new CoolMethod("substring", string_class);
+        substring.arguments.add(new CoolAttribute("start", int_class));
+        substring.arguments.add(new CoolAttribute("end", int_class));
+        final CoolMethod charAt = new CoolMethod("charAt", int_class);
+        charAt.arguments.add(new CoolAttribute("index", int_class));
+        final CoolMethod indexOf = new CoolMethod("indexOf", int_class);
+        indexOf.arguments.add(new CoolAttribute("sub", string_class));
+        
+        addAttribute(string_class, length);
+        addMethod(string_class, length);
+        addMethod(string_class, concat);
+        addMethod(string_class, substring);
+        addMethod(string_class, charAt);
+        addMethod(string_class, indexOf);
+        
+        // Built-in Methods of Symbol
+        final CoolAttribute name = new CoolAttribute("name", string_class);
+        final CoolAttribute hash = new CoolAttribute("hash", int_class);
+        final CoolMethod hashcode = new CoolMethod("hashcode", int_class);
+        
+        addAttribute(symbol_class, name);
+        addAttribute(symbol_class, hash);
+        addMethod(symbol_class, hashcode);
+        
+        // Built-in Methods of ArrayAny
+        final CoolMethod length = new CoolMethod("length", int_class);
+        
+        final CoolMethod resize = new CoolMethod("resize", arrayany_class);
+        resize.arguments.add(new CoolAttribute("s", int_class));
+        
+        final CoolMethod get = new CoolMethod("get", any_class);
+        get.arguments.add(new CoolAttribute("index", int_class));
+        
+        final CoolMethod set = new CoolMethod("set", any_class);
+        set.arguments.add(new CoolAttribute("index", int_class));
+        set.arguments.add(new CoolAttribute("obj", any_class));
+        
+        addMethod(arrayany_class, length);
+        addMethod(arrayany_class, resize);
+        addMethod(arrayany_class, get);
+        addMethod(arrayany_class, set);
+        
+        
 
         // Bool has no built-in method
 
