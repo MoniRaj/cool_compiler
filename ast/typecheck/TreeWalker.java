@@ -16,10 +16,8 @@
  *      Nick Chaimov (nchaimov@uoregon.edu), Winter 2010
  *
  * Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
- *
  */
 
-package ast.typecheck;
 import ast.*;
 import main.Terminals;
 import beaver.*;
@@ -42,9 +40,12 @@ public class TreeWalker {
     protected Node root;
     protected Environment env;
     protected boolean debug;
+    protected HashMap<int, String> expr_types;
 
     protected Environment.CoolClass CURR_CLASS;
 
+    protected final Environment.CoolClass NULL;
+    protected final Environment.CoolClass NOTHING;
     protected final Environment.CoolClass ANY;
     protected final Environment.CoolClass UNIT;
     protected final Environment.CoolClass ARRAYANY;
@@ -62,6 +63,10 @@ public class TreeWalker {
 
         CURR_CLASS = null;
 
+        expr_types = new HashMap<int, String>();
+        expr_types.put(   ); //put the types here 
+        NOTHING = env.getClass("Nothing");
+        NULL = env.getClass("Null");
         ANY = env.getClass("Any");
         ARRAYANY = env.getClass("ArrayAny");
         BOOLEAN = env.getClass("Boolean");
@@ -78,7 +83,8 @@ Helper Methods
     
     //TODO check that these helper methods work correctly
 
-    protected void addMethod(MethodFeature mf) {
+    protected void addMethod(MethodFeature mf) 
+        throws Environment.EnvironmentException, TypeCheckException {
         final Environment.CoolClass return_type = env.getClass(
                 mf.type);
         final Environment.CoolMethod method = new Environment.CoolMethod(
@@ -89,7 +95,8 @@ Helper Methods
         //node.type = return_type; //TODO do we need this?
     }
 
-    protected void addAttribute(String i, String t, Node n, Expr e) {
+    protected void addAttribute(String i, String t, Node n, Expr e)
+        throws Environment.EnvironmentException, TypeCheckException {
         final Environment.CoolClass type = env.getClass(t);
         final Environment.CoolAttribute attr = new Environment.CoolAttribute(
                 i, type, e);
@@ -196,14 +203,14 @@ Helper Methods
                 final Environment.CoolAttribute attr = e2.getValue();
                 if (attr.expr != null) {
                     log("Checking attribute " + attr);
-                    check(curr_class, attr.expr); //TODO fix, implement, chk
+                    check(curr_class, attr.expr); 
                     log(MessageFormat.format("Expr type: {0}; Attr type: {1}",
-                            attr.expr.type, attr.type));
-                    if (!moreGeneralOrEqualTo(attr.expr.type,
+                            attr.expr.class_type, attr.type));
+                    if (!moreGeneralOrEqualTo(attr.expr.class_type,
                             attr.type)) { 
                         throw new TypeCheckException(MessageFormat.format(
                                 "Attribute {0} has value of wrong type: {1}",
-                                attr, attr.expr.type)); 
+                                attr, attr.expr.class_type)); 
                     }
                 }
             }
@@ -243,12 +250,12 @@ Helper Methods
                             env.local_types));
                     log(MessageFormat.format(
                             "Declared method type: {0}; Method body type: {1}",
-                            method.type, method.expr.type));
+                            method.type, method.expr.class_type));
                     if (!moreGeneralOrEqualTo(method.type,
-                            method.expr.type)) {
+                            method.expr.class_type)) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Method {0} has body of wrong type: {1}",
-                                method, method.expr.type));
+                                method, method.expr.class_type));
                     }
                 }
             }
@@ -256,305 +263,306 @@ Helper Methods
     }
 
     public Environment.CoolClass check(final Environment.CoolClass curr_class,
-            final Node node) throws Environment.EnvironmentException,
+            final Expr expr) throws Environment.EnvironmentException,
             TypeCheckException {
-//TODO FIX
-        if (node != null) {
-            switch (node.kind) {
-
-            // LITERALS
-            case Terminals.TRUE:
-            case Terminals.FALSE:
-                return setType(BOOLEAN, node);
-            case Terminals.INTLIT:
-                return setType(INT, node);
-            case Terminals.STRINGLIT:
-                return setType(STRING, node);
-
-                // IDENTIFIER
-            case Terminals.ID:
-                return setType(env
-                        .lookupAttrType(curr_class, (String) node.value), node);
-
-                // OPERATORS
-            case Terminals.ASSIGN: {
-                if (node.left.kind != Terminals.ID) {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Left-hand side of an assignment must be an identifier, but {0} found instead",
-                                            Util.idToName(node.left.kind)));
-                }
-                if (node.left.value.equals("self")) {
-                    throw new TypeCheckException(
-                            "The special variable 'self' cannot be assigned to.");
-                }
-                final Environment.CoolClass leftType = check(curr_class,
-                        node.left);
-                final Environment.CoolClass rightType = check(curr_class,
-                        node.right);
-                log(MessageFormat
-                        .format(
-                                "Assignment: Left-side {0} has type {1}; right-side has type {2}",
-                                node.left.value, node.left.type,
-                                node.right.type));
-                if (moreGeneralOrEqualTo(leftType, rightType)) {
-                    log(MessageFormat.format(
-                            "Most specific parent in common is {0}",
-                            mostSpecificParent(leftType, rightType)));
-                    return setType(rightType, node);
-                } else {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Expression of type {0} not compatible with variable type {1}",
-                                            node.right.type, node.left.type));
-                }
-            }
-
-            case Terminals.NEW: {
-                return setType(env.getClass((String) node.value), node);
-            }
-
-            case Terminals.DOT: {
-                typecheckMethodArguments(curr_class, node.right);
-                Environment.CoolClass containingClass;
-                if (node.left != null) {
-                    check(curr_class, node.left);
-                    containingClass = node.left.type;
-                } else {
-                    containingClass = curr_class;
-                }
-
-                if (node.center != null) {
-                    if (node.center.kind != Terminals.TYPEID) {
-                        throw new TypeCheckException(
-                                MessageFormat
-                                        .format(
-                                                "Malformed AST; center node of DOT, if it exists, should be TYPEID, but it was {0}",
-                                                Util.idToName(node.center.kind)));
+        if (expr != null) {
+            switch (expr.expr_type) {
+                
+                case PRIMARYEXPR :
+                    //Literals
+                    if ((PrimaryExpr) expr.primarytype.equals("boolean")) {
+                        return setType(BOOLEAN, expr);
                     }
-                    final Environment.CoolClass staticClass = env
-                            .getClass((String) node.center.value);
-                    if (!moreGeneralOrEqualTo(staticClass, containingClass)) {
-                        throw new TypeCheckException(
-                                MessageFormat
-                                        .format(
-                                                "Static class {0} not compatible with type ({1}) of {2}",
-                                                staticClass, containingClass,
-                                                node.left.value));
+                    else if ((PrimaryExpr) expr.primarytype.equals("integer")) {
+                        return setType(INT, expr);
                     }
-                    log(MessageFormat
-                            .format(
-                                    "Static dispatch; will use {0} as type for method call {1}",
-                                    staticClass, node.value));
-                    containingClass = staticClass;
-                }
-
-                log(MessageFormat.format("Looking up method {0} in {1}",
-                        node.value, containingClass));
-                final Environment.CoolMethod method = env.lookupMethod(
-                        containingClass, (String) node.value);
-                if (method == null) {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Tried to call method {0} in {1}, but method not found.",
-                                            node.value, containingClass));
-                }
-
-                final List<Environment.CoolClass> actuals = new LinkedList<Environment.CoolClass>();
-                getArgumentTypes(node.right, actuals);
-                final List<Environment.CoolAttribute> formals = method.arguments;
-
-                if (actuals.size() != formals.size()) {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Call to method {0} has wrong number of arguments (expected {1}, found {2})",
-                                            method, formals.size(), actuals
-                                                    .size()));
-                }
-
-                final Iterator<Environment.CoolClass> actualIter = actuals
-                        .iterator();
-                final Iterator<Environment.CoolAttribute> formalIter = formals
-                        .iterator();
-
-                while (actualIter.hasNext() && formalIter.hasNext()) {
-                    final Environment.CoolClass expectedType = formalIter
-                            .next().type;
-                    final Environment.CoolClass actualType = actualIter.next();
-
-                    if (!moreGeneralOrEqualTo(expectedType, actualType)) {
+                    else if ((PrimaryExpr) expr.primarytype.equals("string")) {
+                        return setType(STRING, expr);
+                    }
+                    else if ((PrimaryExpr) expr.primarytype.equals("id")) {
+                        return setType(env.lookupAttrType(curr_class, id), expr);
+                    }
+                    else if ((PrimaryExpr) expr.primarytype.equals("this")) {
+                        return setType(curr_class, expr);
+                    }
+                    else if ((PrimaryExpr) expr.primarytype.equals("new")) {
+                        Environment.CoolClass type = env.getClass(expr.type);
+                        if (type == ANY || type == INT || type == BOOLEAN ||
+                                type == UNIT || type == SYMBOL) {
+                            throw new TypeCheckException(
+                                    "Illegal use of <new> with type: " + type);
+                        }
+                        return setType(env.getClass(expr.type), expr);
+                    }
+                    else if ((PrimaryExpr) expr.primarytype.equals("null")) {
+                        return setType(NULL, expr);
+                    }
+                    else if ((PrimaryExpr) expr.primarytype.equals("empty")) {
+                        return setType(UNIT, expr);
+                    }
+                    //Block
+                    //TODO FINISH
+                    else if ((PrimaryExpr) expr.primarytype.equals("block")) {
+                        //empty block
+                        //one expr block
+                        //block : first expr = expr eval
+                        //block : first expr = local var (see type rules on pg 21)
+                    }
+                    //( expr )
+                    else if ((PrimaryExpr) expr.primarytype.equals("parenexpr")) {
+                        return setType(check(curr_class, (PrimaryExpr) expr.expr),
+                                expr); //TODO check to make sure recursion works
+                    }
+                    //super.methodcall
+                    else if ((PrimaryExpr) expr.primarytype.equals("supercall")) {
+                        //Typecheck the exprs in actuals, if any
+                        Environment.CoolClass superclass = curr_class.parent; 
+                        for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                            check(curr_class, (Expr) a.exprlist.get(i));
+                        }
+                        log(MessageFormat.format("Looking up method {0} in {1}",
+                            expr.id, superclass));
+                        final Environment.CoolMethod method = env.lookupMethod(
+                            superclass, expr.id);
+                        if (method == null) {
+                            throw new TypeCheckException(MessageFormat.format(
+                                    "Tried to call method {0} in {1}, but method not found.",
+                                    expr.id, superclass));
+                        }
+                        //Typecheck: compare formals to actuals (# and type)
+                        typecheckMethodArguments(method, expr.actuals);
+                        return setType(method.type, expr);
+                    }
+                    //this.methodcall
+                    else if ((PrimaryExpr) expr.primarytype.equals("call")) {
+                        //Typecheck the exprs in actuals, if any
+                        for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                            check(curr_class, (Expr) a.exprlist.get(i));
+                        }
+                        log(MessageFormat.format("Looking up method {0} in {1}",
+                            expr.id, curr_class));
+                        final Environment.CoolMethod method = env.lookupMethod(
+                            curr_class, expr.id);
+                        if (method == null) {
+                            throw new TypeCheckException(MessageFormat.format(
+                                    "Tried to call method {0} in {1}, but method not found.",
+                                    expr.id, curr_class));
+                        }
+                        //Typecheck: compare formals to actuals (# and type)
+                        typecheckMethodArguments(method, expr.actuals);
+                        return setType(method.type, expr);
+                    }
+                    break;
+               
+                //expr.methodcall
+                case DOTEXPR :
+                    //Typecheck the exprs in actuals, if any
+                    for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                        check(curr_class, (Expr) a.exprlist.get(i));
+                    }
+                    Environment.CoolClass expr_cls = check(curr_class, expr.expr);
+                    log(MessageFormat.format("Looking up method {0} in {1}",
+                            expr.id, expr_cls));
+                    final Environment.CoolMethod method = env.lookupMethod(
+                            expr_cls, expr.id);
+                    if (method == null) {
                         throw new TypeCheckException(MessageFormat.format(
-                                "Expected argument of type {0}, but found {1}",
-                                expectedType, actualType));
+                                "Tried to call method {0} in {1}, but method not found.",
+                                expr.id, expr_cls));
                     }
+                    //Typecheck: compare formals to actuals (# and type)
+                    typecheckMethodArguments(method, expr.actuals);
+                    return setType(method.type, expr);
+                    break;
+
+                //Assignments
+                case ASSIGNEXPR :
+                    final Environment.CoolClass id_type = env.lookupAttrType(
+                            curr_class, expr.id);
+                    final Environment.CoolClass expr_type = check(curr_class,
+                            expr.expr);
+                    log(MessageFormat.format(
+                            "Assignment: {0} has type {1}; expr has type {2}",
+                                    expr.id, id_type, expr_type));
+                    if ((expr_type == NULL) &&
+                            (id_type == BOOLEAN ||
+                            id_type == INT ||
+                            id_type == UNIT)) {
+                        throw new TypecheckException(
+                                "Cannot assign <boolean,int,unit> id to Null");
+                    }
+                    else if (moreGeneralOrEqualTo(id_type, expr_type)) {
+                        log(MessageFormat.format(
+                                "Most specific parent in common is {0}",
+                                mostSpecificParent(id_type, expr_type)));
+                        return setType(UNIT, expr);
+                    } else {
+                        throw new TypeCheckException(MessageFormat.format(
+                                "Expr of type {0} not compatible with {1} of type {2}",
+                                expr_type, expr.id, id_type));
+                    }
+
+                //Control statements
+                //TODO FINISH
+                case Terminals.IF: {
+                    check(curr_class, node.left);
+                    if (node.left.type != BOOLEAN) {
+                        throw new TypeCheckException(MessageFormat.format(
+                                "If condition must be of type Bool, but {0} found",
+                                node.left.type));
+                    }
+                    check(curr_class, node.center);
+                    check(curr_class, node.right);
+                    final Environment.CoolClass unionType = mostSpecificParent(
+                            node.center.type, node.right.type);
+                    log(MessageFormat.format(
+                            "Then type: {0}; Else type: {1}; Union type: {2}",
+                            node.center.type, node.right.type, unionType));
+                    return setType(unionType, node);
+                }
+                //exprSeq ::= LBRACE expr:e SEMI optExprSeq:eseq RBRACE {: RESULT = new ASTnode(sym.SEMI, e, null, eseq, null); :};
+                case Terminals.SEMI: {
+                    // Check the mandatory first expression
+                    check(curr_class, node.left);
+                    Environment.CoolClass lastType = node.left.type;
+
+                    // Then check the optional remaining expressions,
+                    // if they are present.
+                    if (node.right != null) {
+                        lastType = checkSequence(curr_class, node.right);
+                    }
+                    return setType(lastType, node);
+                }
+                case Terminals.CASE: {
+                    check(curr_class, node.left);
+                    List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>();
+                    list = getCaseTypes(curr_class, node.right, list);
+                    final Iterator<Environment.CoolClass> iter = list.iterator();
+                    Environment.CoolClass caseClass = iter.next();
+                    while (iter.hasNext()) {
+                        final Environment.CoolClass nextClass = iter.next();
+                        log(MessageFormat.format("Comparing {0} and {1}",
+                                caseClass, nextClass));
+                        caseClass = mostSpecificParent(caseClass, nextClass);
+                    }
+                    log(MessageFormat.format("Union type of case statement is {0}",
+                            caseClass));
+                    return setType(caseClass, node);
+                }
+                case Terminals.WHILE: {
+                    check(curr_class, node.left);
+                    if (node.left.type != BOOLEAN) {
+                        throw new TypeCheckException(
+                                MessageFormat
+                                        .format(
+                                                "Loop condition of a WHILE loop must be a Bool, but found {0}",
+                                                node.left.type));
+                    }
+                    check(curr_class, node.right);
+                    return setType(ANY, node);
                 }
 
-                return setType(method.type, node);
-            }
+                //Boolean operators
+                case LTEXPR:
+                case LEQEXPR: 
+                    Environment.CoolClass l_type = check(curr_class, expr.l);
+                    Environment.CoolClass r_type = check(curr_class, expr.r);
+                    if (l_type != INT) {
+                        throw new TypeCheckException(
+                                "Left argument of comparison must be Int, found "
+                                + l_type);
+                    }
+                    if (r_type != INT) {
+                        throw new TypeCheckException(
+                                "Left argument of comparison must be Int, found "
+                                + r_type);
+                    }
+                    return setType(BOOLEAN, expr);
+                    break;
+                case EQUALSEXPR : 
+                    Environment.CoolClass l_type = check(curr_class, expr.l);
+                    Environment.CoolClass r_type = check(curr_class, expr.r);
+                    //Will eventually need to catch l_type == null at runtime
+                    return setType(BOOLEAN, expr);
+                    break;
+                case NEGEXPR :
+                    Environment.CoolClass type = check(curr_class, expr.expr);
+                    if (type != INT) {
+                        throw new TypeCheckException(
+                                "Illegal use of - operator: expected Int, found "
+                                + type);
+                    }
+                    return setType(INT, expr);
+                    break;
+                case NOTEXPR :
+                    Environment.CoolClass type = check(curr_class, expr.expr);
+                    if (type != BOOLEAN) {
+                        throw new TypeCheckException(
+                                "Illegal use of ! operator: expected Bool, found "
+                                + type);
+                    }
+                    return setType(BOOLEAN, expr);
+                    break;
 
-            case Terminals.IF: {
-                check(curr_class, node.left);
-                if (node.left.type != BOOLEAN) {
-                    throw new TypeCheckException(MessageFormat.format(
-                            "If condition must be of type Bool, but {0} found",
-                            node.left.type));
-                }
-                check(curr_class, node.center);
-                check(curr_class, node.right);
-                final Environment.CoolClass unionType = mostSpecificParent(
-                        node.center.type, node.right.type);
-                log(MessageFormat.format(
-                        "Then type: {0}; Else type: {1}; Union type: {2}",
-                        node.center.type, node.right.type, unionType));
-                return setType(unionType, node);
-            }
-
-            case Terminals.SEMI: {
-                // Check the mandatory first expression
-                check(curr_class, node.left);
-                Environment.CoolClass lastType = node.left.type;
-
-                // Then check the optional remaining expressions,
-                // if they are present.
-                if (node.right != null) {
-                    lastType = checkSequence(curr_class, node.right);
-                }
-                return setType(lastType, node);
-            }
-
-            case Terminals.LET: {
-                final int numVars = addLetIntroductions(curr_class, node.left, 0);
-                log(MessageFormat
-                        .format(
-                                "Let expression resulted in {0} variables added to local environment, which is now: {1}",
-                                numVars, env.local_types));
-                check(curr_class, node.right);
-                for (int i = 0; i < numVars; ++i) {
-                    log("Popping mapping off local environment");
-                    env.local_types.pop();
-                }
-                log(MessageFormat.format(
-                        "After let evaluated, local environment is {0}",
-                        env.local_types));
-                return setType(node.right.type, node);
-            }
-
-            case Terminals.CASE: {
-                check(curr_class, node.left);
-                List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>();
-                list = getCaseTypes(curr_class, node.right, list);
-                final Iterator<Environment.CoolClass> iter = list.iterator();
-                Environment.CoolClass caseClass = iter.next();
-                while (iter.hasNext()) {
-                    final Environment.CoolClass nextClass = iter.next();
-                    log(MessageFormat.format("Comparing {0} and {1}",
-                            caseClass, nextClass));
-                    caseClass = mostSpecificParent(caseClass, nextClass);
-                }
-                log(MessageFormat.format("Union type of case statement is {0}",
-                        caseClass));
-                return setType(caseClass, node);
-            }
-
-            case Terminals.WHILE: {
-                check(curr_class, node.left);
-                if (node.left.type != BOOLEAN) {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Loop condition of a WHILE loop must be a Bool, but found {0}",
-                                            node.left.type));
-                }
-                check(curr_class, node.right);
-                return setType(ANY, node);
-            }
-
-            case Terminals.ISVOID: {
-                check(curr_class, node.left);
-                return setType(BOOLEAN, node);
-            }
-
-            case Terminals.NOT: {
-                check(curr_class, node.left);
-                if (node.left.type != BOOLEAN) {
-                    throw new TypeCheckException(MessageFormat.format(
-                            "Argument to NOT must be Bool, but found {0}",
-                            node.left.type));
-                }
-                return setType(BOOLEAN, node);
-            }
-
-            case Terminals.LT:
-            case Terminals.LEQ: {
-                check(curr_class, node.left);
-                check(curr_class, node.right);
-                if (node.left.type != INT) {
-                    throw new TypeCheckException(
-                            "Left argument of comparison must be Int, but found"
-                                    + node.left.type);
-                }
-                if (node.right.type != INT) {
-                    throw new TypeCheckException(
-                            "Right argument of comparison must be Int, but found"
-                                    + node.left.type);
-                }
-                return setType(BOOLEAN, node);
-            }
-
-            case Terminals.MINUS:
-            case Terminals.DIV:
-            case Terminals.TIMES:
-            case Terminals.PLUS: {
-                check(curr_class, node.left);
-                check(curr_class, node.right);
-                if (node.left.type != INT || node.right.type != INT) {
-                    throw new TypeCheckException("The operator "
-                            + Util.idToName(node.kind)
-                            + " takes two arguments of type Int");
-                }
-                return setType(INT, node);
-            }
-
-            case Terminals.EQ: {
-                check(curr_class, node.left);
-                check(curr_class, node.right);
-
-                if ((node.left.type == INT && node.right.type != INT)
-                        || (node.left.type == BOOLEAN && node.right.type != BOOLEAN)
-                        || (node.left.type == STRING && node.right.type != STRING)
-                        || (node.right.type == INT && node.left.type != INT)
-                        || (node.right.type == BOOLEAN && node.left.type != BOOLEAN)
-                        || (node.right.type == STRING && node.left.type != STRING)) {
-                    throw new TypeCheckException(
-                            MessageFormat
-                                    .format(
-                                            "Ints, Bools and Strings can only be compared to each other, but tried to compare a {0} to a {1}",
-                                            node.left.type, node.right.type));
-                }
-
-                return setType(BOOLEAN, node);
-            }
-
-            case Terminals.NEG: {
-                check(curr_class, node.left);
-                if (node.left.type != INT) {
-                    throw new TypeCheckException(
-                            "The ~ operator only takes objects of type Int, but found "
-                                    + node.left.type);
-                }
-                return setType(INT, node);
-            }
-
-            default:
-                throw new TypeCheckException("Unimplemented node type: "
-                        + Util.idToName(node.kind));
+                //Math operators
+                case MINUSEXPR :
+                case PLUSEXPR :
+                case TIMESEXPR :
+                case DIVEXPR : 
+                    Environment.CoolClass l_type = check(curr_class, expr.l);
+                    Environment.CoolClass r_type = check(curr_class, expr.r);
+                    if (node.left.type != INT || node.right.type != INT) {
+                        throw new TypeCheckException(
+                                "Invalid arithmetic: both arguments must be Int");
+                    }
+                    return setType(INT, node);
+                    break;
+                
+               default :
+                    System.out.println(typeToString(expr.expr_type));
+                    throw new TypeCheckException("Something went really wrong.");
             }
         }
         return null;
+    }
+
+    protected void typecheckMethodArguments(final Environment.CoolMethod method,
+            final Actuals a) throws Environment.EnvironmentException,
+            TypeCheckException {
+
+        final List<Environment.CoolClass> actual_args = 
+            new LinkedList<Environment.CoolClass>();
+        getArgumentTypes(a, actual_args);
+        final List<Environment.CoolAttribute> formal_args = method.arguments;
+
+        if (actual_args.size() != formal_args.size()) {
+            throw new TypeCheckException(MessageFormat.format(
+                    "Call to method {0} has wrong number of arguments (expected {1}, found {2})",
+                    method, formal_args.size(), actual_args.size()));
+        }
+
+        final Iterator<Environment.CoolClass> a_it = actual_args.iterator();
+        final Iterator<Environment.CoolAttribute> f_it = formal_args.iterator();
+
+        while (a_it.hasNext() && f_it.hasNext()) {
+            final Environment.CoolClass expected_type = f_it.next().type;
+            final Environment.CoolClass actual_type = a_it.next();
+
+            if (!moreGeneralOrEqualTo(expected_type, actual_type)) {
+                throw new TypeCheckException(MessageFormat.format(
+                        "Expected argument of type {0}, but found {1}",
+                        expected_type, actual_type));
+            }
+        }
+    }
+
+    protected List<Environment.CoolClass> getArgumentTypes(final Actuals a,
+            final List<Environment.CoolClass> list) {
+        for (int i = 0; i < a.exprlist.size(); i++) {
+            Environment.CoolClass type = (Expr) a.exprlist.get(i).class_type;
+            list.add(type);
+        }
+        return list;
     }
 
 /*
@@ -629,6 +637,8 @@ Visit Methods
         while (it.hasNext()) {
             final Entry<String, Environment.CoolClass> entry = it.next();
             Environment.CoolClass curr_class = entry.getValue();
+            if (curr_class == NULL || curr_class == NOTHING)
+                continue; //Do nothing for null/nothing
             while (!green.contains(curr_class)) {
                 if (red.contains(curr_class)) {
                     throw new TypeCheckException(
@@ -666,6 +676,9 @@ Visit Methods
         //5. Typecheck attributes and methods
         checkAttributes();
         checkMethods();
+
+        //6. Check for Main class
+        //TODO FINISH
 
         print(" } }");
     }
@@ -1011,8 +1024,8 @@ Utility Methods
     }
 
     protected Environment.CoolClass setType(final Environment.CoolClass cls,
-            final Node node) {
-        node.type = cls;
+            final Expr expr) {
+        expr.class_type = cls;
         return cls;
     }
 
@@ -1063,5 +1076,9 @@ Utility Methods
         if (debug) {
             System.err.println(msg);
         }
+    }
+
+    protected void typeToString(final int type) {
+        return expr_types.get(type);
     }
 }

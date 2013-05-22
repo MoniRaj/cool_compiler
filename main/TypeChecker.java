@@ -400,7 +400,7 @@ public class TypeChecker {
     /*
      * TYPECHECKING METHODS
      */
-
+/*
     public void checkAttributes() throws Environment.EnvironmentException,
             TypeCheckException {
         for (final Entry<String, Environment.CoolClass> e : env.classes
@@ -475,7 +475,7 @@ public class TypeChecker {
             }
         }
     }
-
+*/
     public Environment.CoolClass check(final Environment.CoolClass curClass,
             final Node node) throws Environment.EnvironmentException,
             TypeCheckException {
@@ -809,7 +809,7 @@ public class TypeChecker {
         }
         return list;
     }
-
+/*
     private int addLetIntroductions(final Environment.CoolClass curClass,
             final Node node, int numVars)
             throws Environment.EnvironmentException, TypeCheckException {
@@ -859,7 +859,7 @@ public class TypeChecker {
 
         return numVars;
     }
-
+*/
     private Environment.CoolClass checkSequence(
             final Environment.CoolClass curClass, final Node node)
             throws Environment.EnvironmentException, TypeCheckException {
@@ -881,7 +881,7 @@ public class TypeChecker {
         }
         return null;
     }
-
+/*
     private List<Environment.CoolClass> getArgumentTypes(final Node node,
             final List<Environment.CoolClass> list) {
         if (node != null) {
@@ -909,11 +909,11 @@ public class TypeChecker {
             }
         }
     }
-
+*/
     /*
      * UTILITY METHODS
      */
-
+/*
     protected boolean moreGeneralOrEqualTo(final Environment.CoolClass c1,
             Environment.CoolClass c2) throws Environment.EnvironmentException {
         while (c2 != c1 && c2 != ANY) {
@@ -943,6 +943,7 @@ public class TypeChecker {
             }
         }
     }
+    */
 /*
     protected Environment.CoolClass setType(final Environment.CoolClass cls,
             final Node node) {

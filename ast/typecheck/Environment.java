@@ -198,6 +198,8 @@ public class Environment {
         null_class.builtin = true;
         
 
+        addClass(null_class);
+        addClass(nothing_class);
         addClass(any_class);
         addClass(arrayany_class);
         addClass(unit_class);
