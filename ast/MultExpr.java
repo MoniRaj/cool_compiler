@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class MultExpr extends BinExpr
 {
 	public MultExpr(Expr left, Expr right)

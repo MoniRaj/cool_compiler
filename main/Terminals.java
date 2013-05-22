@@ -1,3 +1,5 @@
+package main;
+
 /**
  * This class lists terminals used by the
  * grammar specified in "cool.grammar".

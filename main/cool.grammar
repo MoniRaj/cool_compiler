@@ -1,6 +1,9 @@
-%import "beaver.*";
-%import "ast.*";
+%package "main";
+
+%import "main.beaver.*";
+%import "main.ast.*";
 %import "java.util.ArrayList";
+
 
 %class "CoolParser";
 

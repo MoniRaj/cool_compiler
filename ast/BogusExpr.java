@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class BogusExpr extends Expr
 {
     public final String bogus;

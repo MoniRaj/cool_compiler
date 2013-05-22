@@ -8,9 +8,10 @@
  * @date: 4/11/13
  */
 
+package main;
 
-import beaver.Symbol;
-import beaver.Scanner;
+import main.beaver.Symbol;
+import main.beaver.Scanner;
 
 %%
 

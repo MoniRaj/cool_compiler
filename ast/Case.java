@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 public class Case extends Node 
 {
     public final Block block;

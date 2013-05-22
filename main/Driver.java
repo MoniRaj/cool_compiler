@@ -9,6 +9,7 @@
  * @author: Paul Elliott
  * @date: 4/11/13
  */
+package main;
 
 import ast.*;
 import beaver.*;

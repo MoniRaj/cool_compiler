@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class MinusExpr extends BinExpr
 {
 	public MinusExpr(Expr left, Expr right)

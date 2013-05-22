@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class DivExpr extends BinExpr
 {
 	public DivExpr(Expr left, Expr right)

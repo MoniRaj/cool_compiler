@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 public class BlockFeature extends Node
 {
     public final Block block;

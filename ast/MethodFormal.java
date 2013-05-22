@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 import java.util.ArrayList;
 public class MethodFormal extends Node
 {

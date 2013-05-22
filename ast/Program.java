@@ -1,14 +1,15 @@
 package ast;
+import ast.typecheck.*;
 import java.util.ArrayList;
 public class Program extends Node
 {
     public ArrayList classlist;
-    public ArrayList<CoolClass> class_hierarchy;
+    public ArrayList<Environment.CoolClass> class_hierarchy;
 
     public Program(ArrayList clist) {
         super();
         classlist = clist;
-        class_hierarchy = new ArrayList<CoolClass>();
+        class_hierarchy = new ArrayList<Environment.CoolClass>();
     }
 
     public void add(ClassDecl c) {

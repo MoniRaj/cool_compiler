@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class DotExpr extends Expr
 {
     public final Expr expr;

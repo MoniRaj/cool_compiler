@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class EqualsExpr extends BinExpr
 {
 	public EqualsExpr(Expr left, Expr right)

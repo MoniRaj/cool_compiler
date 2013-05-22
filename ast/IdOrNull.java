@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 import java.util.ArrayList;
 import beaver.Symbol;
 public class IdOrNull extends Symbol

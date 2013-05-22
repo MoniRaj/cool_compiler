@@ -11,14 +11,14 @@
  *  Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
  *
  */
-
+package ast.typecheck;
+import ast.*;
+import beaver.*;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import beaver.*;
-import ast.*;
 
 //TODO add back in basic classes, methods, attributes from basic.cool
 
@@ -29,12 +29,15 @@ public class Environment {
         public CoolClass type;
         public Node node; //TODO check this
         public CoolClass owner;
+        public Expr expr;
 
         public int index = -1;
 
-        public CoolAttribute(final String name, final CoolClass type) {
+        public CoolAttribute(final String name, final CoolClass type,
+                final Expr expr) {
             this.name = name;
             this.type = type;
+            this.expr = expr;
         }
 
         @Override
@@ -86,15 +89,18 @@ public class Environment {
         public String name;
         public List<CoolAttribute> arguments = new LinkedList<CoolAttribute>();
         public CoolClass type;
+        public Expr expr;
         public Node node; //TODO check this
         public CoolClass owner;
         public String builtin_implementation = null;
 
         public int index = -1;
 
-        public CoolMethod(final String name, final CoolClass type) {
+        public CoolMethod(final String name, final CoolClass type,
+                final Expr expr) {
             this.name = name;
             this.type = type;
+            this.expr = expr;
         }
 
         public String getInternalType() {

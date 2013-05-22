@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class NegExpr extends Expr
 {
 	public final Expr expr;

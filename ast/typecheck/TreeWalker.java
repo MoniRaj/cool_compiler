@@ -19,15 +19,16 @@
  *
  */
 
-package ast;
-
+package ast.typecheck;
+import ast.*;
+import main.Terminals;
+import beaver.*;
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import beaver.*;
 
 public class TreeWalker {
      
@@ -38,6 +39,7 @@ public class TreeWalker {
         }
     }
 
+    protected Node root;
     protected Environment env;
     protected boolean debug;
 
@@ -76,37 +78,38 @@ Helper Methods
     
     //TODO check that these helper methods work correctly
 
-    protected void addMethod(MethodFormal mf) {
+    protected void addMethod(MethodFeature mf) {
         final Environment.CoolClass return_type = env.getClass(
                 mf.type);
         final Environment.CoolMethod method = new Environment.CoolMethod(
-                mf.id, return_type);
+                mf.id, return_type, mf.expr);
         method.node = mf;
         processMethodArguments(method, mf.varformals);
         env.addMethod(CURR_CLASS, method);
         //node.type = return_type; //TODO do we need this?
     }
 
-    protected void addAttribute(String id, String type) {
-        final Environment.CoolClass type = env.getClass(vf.type);
+    protected void addAttribute(String i, String t, Node n, Expr e) {
+        final Environment.CoolClass type = env.getClass(t);
         final Environment.CoolAttribute attr = new Environment.CoolAttribute(
-                vf.id, type);
-        attr.node = vf; //TODO check that this works
+                i, type, e);
+        attr.node = n; //TODO check that this works
         env.addAttribute(CURR_CLASS, attr);
-        //node.type = type; //TODO do we need this?
+        //node.type = t; //TODO do we need this?
     }
 
     protected void processMethodArguments(final Environment.CoolMethod method,
-            final Node methodvf) throws Environment.EnvironmentException,
-            TypeCheckException {
+            final MethodVarFormals methodvf) 
+            throws Environment.EnvironmentException, TypeCheckException {
         for (int i = 0; i < methodvf.formalvarlist.size(); i++) {
             MethodFormal mf = (MethodFormal) methodvf.formalvarlist.get(i);
-            method.arguments.add(new Environment.CoolAttribute(mf.id, mf.type));
+            final Environment.CoolClass type = env.getClass(mf.type);
+            method.arguments.add(new Environment.CoolAttribute(mf.id, type));
         }
     }
 
     protected void inheritAttributes(final Environment.CoolClass c) {
-        if (!c.attrInheritDone && c != ANY) {
+        if (!c.attr_inherit_done && c != ANY) {
             log("Inheriting attributes for " + c);
             inheritAttributes(c.parent);
             final LinkedList<Environment.CoolClass> q = 
@@ -123,21 +126,21 @@ Helper Methods
                         .values()) {
                     log("Found attribute " + a + " of " + curr_class + " for "
                             + c);
-                    c.attrList.add(a);
+                    c.attr_list.add(a);
                 }
             }
-            c.attrInheritDone = true;
+            c.attr_inherit_done = true;
         }
         log("Attribute inheritance complete for class: " + c);
         if (debug) {
-            for (final Environment.CoolAttribute a : c.attrList) {
+            for (final Environment.CoolAttribute a : c.attr_list) {
                 System.err.println(MessageFormat.format("In {0} is {1}", c, a));
             }
         }
     }
 
     protected void inheritMethods(final Environment.CoolClass c) {
-        if (!c.methodInheritDone && c != ANY) {
+        if (!c.method_inherit_done && c != ANY) {
             log("Inheriting methods for " + c);
             inheritMethods(c.parent);
             final LinkedList<Environment.CoolClass> q = 
@@ -150,28 +153,29 @@ Helper Methods
             }
             while (!q.isEmpty()) {
                 final Environment.CoolClass curr_class = q.pop();
-                for (final Environment.CoolMethod a : curr_class.methods.values()) {
+                for (final Environment.CoolMethod a : 
+                        curr_class.methods.values()) {
                     log("Found method " + a + " of " + curr_class + " for " + c);
                     final Environment.CoolMethod overriddenMethod = c.methods
                             .get(a.name);
-                    log(overriddenMethod != null ? "" + overriddenMethod.parent
+                    log(overriddenMethod != null ? "" + overriddenMethod.owner
                             : "not overridden");
                     if (overriddenMethod != null) {
-                        if (!c.methodList.contains(overriddenMethod)) {
-                            c.methodList.add(overriddenMethod);
+                        if (!c.method_list.contains(overriddenMethod)) {
+                            c.method_list.add(overriddenMethod);
                         }
                     } else {
-                        if (!c.methodList.contains(a)) {
-                            c.methodList.add(a);
+                        if (!c.method_list.contains(a)) {
+                            c.method_list.add(a);
                         }
                     }
                 }
             }
-            c.methodInheritDone = true;
+            c.method_inherit_done = true;
         }
         log("Method inheritance complete for class: " + c);
         if (debug) {
-            for (final Environment.CoolAttribute a : c.attrList) {
+            for (final Environment.CoolAttribute a : c.attr_list) {
                 System.err.println(MessageFormat.format("In {0} is {1}", c, a));
             }
         }
@@ -179,7 +183,6 @@ Helper Methods
 
     public void checkAttributes() throws Environment.EnvironmentException,
            TypeCheckException {
-//TODO FIX
         for (final Entry<String, Environment.CoolClass> e : 
                 env.class_map.entrySet()) {
             final Environment.CoolClass curr_class = e.getValue();
@@ -191,16 +194,16 @@ Helper Methods
             for (final Entry<String, Environment.CoolAttribute> e2 : 
                     curr_class.attributes.entrySet()) {
                 final Environment.CoolAttribute attr = e2.getValue();
-                if (attr.node.right != null) {
+                if (attr.expr != null) {
                     log("Checking attribute " + attr);
-                    check(curr_class, attr.node.right); //TODO fix, implement, chk
+                    check(curr_class, attr.expr); //TODO fix, implement, chk
                     log(MessageFormat.format("Expr type: {0}; Attr type: {1}",
-                            attr.node.right.type, attr.node.type));
-                    if (!moreGeneralOrEqualTo(attr.node.type,
-                            attr.node.right.type)) { //TODO fix, implement, check
+                            attr.expr.type, attr.type));
+                    if (!moreGeneralOrEqualTo(attr.expr.type,
+                            attr.type)) { 
                         throw new TypeCheckException(MessageFormat.format(
                                 "Attribute {0} has value of wrong type: {1}",
-                                attr, attr.node.right.type)); //TODO fix
+                                attr, attr.expr.type)); 
                     }
                 }
             }
@@ -209,45 +212,43 @@ Helper Methods
 
     public void checkMethods() throws Environment.EnvironmentException,
             TypeCheckException {
-//TODO FIX
-        for (final Entry<String, Environment.CoolClass> e : env.class_map
-                .entrySet()) {
+        for (final Entry<String, Environment.CoolClass> e : 
+                env.class_map.entrySet()) {
             final Environment.CoolClass curr_class = e.getValue();
             if (curr_class.builtin) {
                 continue;
             }
             log(MessageFormat.format("Typechecking methods of class {0}",
                     curr_class));
-            for (final Entry<String, Environment.CoolMethod> e2 : curr_class.methods
-                    .entrySet()) {
+            for (final Entry<String, Environment.CoolMethod> e2 : 
+                    curr_class.methods.entrySet()) {
                 final Environment.CoolMethod method = e2.getValue();
-                if (method.node.right != null) {
+                if (method.expr != null) {
                     log("Checking method " + method);
                     for (final Environment.CoolAttribute a : method.arguments) {
-                        log(MessageFormat
-                                .format(
-                                        "Pushing method argument {0} onto local environment",
-                                        a));
-                        env.localTypes.push(a.name, a.type);
+                        log(MessageFormat.format(
+                                "Pushing method arg {0} onto local environment",
+                            a));
+                        env.local_types.push(a.name, a.type);
                     }
                     log(MessageFormat.format("Local environment is {0}",
-                            env.localTypes));
-                    check(curr_class, method.node.right);
+                            env.local_types));
+                    check(curr_class, method.expr);
                     for (@SuppressWarnings("unused")
                     final Environment.CoolAttribute a : method.arguments) {
                         log("Popping local environment");
-                        env.localTypes.pop();
+                        env.local_types.pop();
                     }
                     log(MessageFormat.format("Local environment is {0}",
-                            env.localTypes));
+                            env.local_types));
                     log(MessageFormat.format(
                             "Declared method type: {0}; Method body type: {1}",
-                            method.node.right.type, method.node.type));
-                    if (!moreGeneralOrEqualTo(method.node.type,
-                            method.node.right.type)) {
+                            method.type, method.expr.type));
+                    if (!moreGeneralOrEqualTo(method.type,
+                            method.expr.type)) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Method {0} has body of wrong type: {1}",
-                                method, method.node.right.type));
+                                method, method.expr.type));
                     }
                 }
             }
@@ -430,15 +431,15 @@ Helper Methods
                 log(MessageFormat
                         .format(
                                 "Let expression resulted in {0} variables added to local environment, which is now: {1}",
-                                numVars, env.localTypes));
+                                numVars, env.local_types));
                 check(curr_class, node.right);
                 for (int i = 0; i < numVars; ++i) {
                     log("Popping mapping off local environment");
-                    env.localTypes.pop();
+                    env.local_types.pop();
                 }
                 log(MessageFormat.format(
                         "After let evaluated, local environment is {0}",
-                        env.localTypes));
+                        env.local_types));
                 return setType(node.right.type, node);
             }
 
@@ -606,9 +607,13 @@ Visit Methods
                            "Class {0} inherits Any", this_class, parent_class));
                 }   
             }
-            catch(TypeCheckException e )
+            catch(EnvironmentException e)
+            {
+                log(MessageFormat.format("Environment error: {0}", e.message));
+            }
+            catch(TypeCheckException e)
             { 
-                log(MessageFormat.format("Type check error: {0}", e.message);
+                log(MessageFormat.format("Type check error: {0}", e.message));
             }
         }
         log("Class hierarchy complete.");
@@ -693,7 +698,7 @@ Visit Methods
 
     public void visit(ClassFormal cv) {
         //Add class formal variable to class attributes
-        addAttribute(cv.id, cv.type);
+        addAttribute(cv.id, cv.type, cv, null);
         print("\""+cv.id+":"+cv.type+"\"");
     }
 
@@ -768,7 +773,7 @@ Visit Methods
         }
         else {
             //Add variable feature to class attributes
-            addAttribute(vf.id, vf.type);
+            addAttribute(vf.id, vf.type, vf, vf.expr);
             print("{ \"id\": \"" + vf.id + "\", ");
             print("\"type\": \"" + vf.type + "\", ");
             print("\"expr\": { ");

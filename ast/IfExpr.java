@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class IfExpr extends Expr
 {
     public final Expr expr1;

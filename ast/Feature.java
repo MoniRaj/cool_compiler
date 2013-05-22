@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 public class Feature extends Node
 {
     public final String feattype;

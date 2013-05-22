@@ -6,7 +6,7 @@
  * @author: Paul Elliott
  * @date: 4/11/13
  */
-
+package main;
 public class ErrorReport {
     
     private int line;

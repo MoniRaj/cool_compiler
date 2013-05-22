@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 public class MethodFeature extends Node
 {
     public final String override;

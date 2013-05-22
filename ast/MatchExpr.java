@@ -1,5 +1,6 @@
 
 package ast;
+import ast.typecheck.*;
 public class MatchExpr extends Expr
 {
     public final Expr expr;

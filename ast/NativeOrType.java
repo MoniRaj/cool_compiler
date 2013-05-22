@@ -1,4 +1,5 @@
 package ast;
+import ast.typecheck.*;
 import beaver.Symbol;
 import java.util.ArrayList;
 public class NativeOrType extends Symbol
