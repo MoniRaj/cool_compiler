@@ -71,21 +71,21 @@ public class TypeChecker {
 
     public boolean typecheck() {
         try {
-            log("\n--> Pass 1: identifying classes...");
-            identifyClasses(root);
-            log("\n--> Pass 2: determining inheritance hierarchy...");
-            identifyParents(root);
-            log("\n--> Checking inheritance hierarchy for cycles...");
-            checkHierarchyForCycles();
+            //log("\n--> Pass 1: identifying classes...");
+            //identifyClasses(root);
+            //log("\n--> Pass 2: determining inheritance hierarchy...");
+            //identifyParents(root);
+            //log("\n--> Checking inheritance hierarchy for cycles...");
+            //checkHierarchyForCycles();
 
-            log("\n--> Pass 3a: identifying attributes and methods");
-            this.getMethodsAndAttributes();
+            //log("\n--> Pass 3a: identifying attributes and methods");
+            //this.getMethodsAndAttributes();
 
-            log("\n--> Pass 3b: dealing with attribute inheritance");
-            inheritAttributes();
+            //log("\n--> Pass 3b: dealing with attribute inheritance");
+            //inheritAttributes();
 
-            log("\n--> Pass 3c: dealing with method inheritance");
-            inheritMethods();
+            //log("\n--> Pass 3c: dealing with method inheritance");
+            //inheritMethods();
 
             log("\n--> Pass 4: typecheck attributes");
             checkAttributes();
@@ -141,7 +141,7 @@ public class TypeChecker {
             }
         }
     }
-*/
+
     // Second pass: identify class hierarchy
     public void identifyParents(final Node node)
             throws Environment.EnvironmentException, TypeCheckException {
@@ -219,11 +219,12 @@ public class TypeChecker {
         }
         log("Class hierarchy contains no cycles.");
     }
-
+*/
     /*
      * DETERMINE METHODS AND ATTRIBUTES
      */
 
+/*
     protected void getMethodsAndAttributes() throws TypeCheckException,
             Environment.EnvironmentException {
         for (final Entry<String, Environment.CoolClass> e : env.classes
@@ -237,7 +238,6 @@ public class TypeChecker {
             }
         }
     }
-
     protected void getMethodsAndAttributes(
             final Environment.CoolClass curClass, final Node node)
             throws TypeCheckException, Environment.EnvironmentException {
@@ -277,7 +277,6 @@ public class TypeChecker {
                 throw new TypeCheckException(
                         "Malformed AST; METHOD, ATTRIBUTE, or SEMI expected, but found"
                                 + Util.idToName(node.kind));
-            }
         }
     }
 
@@ -397,7 +396,7 @@ public class TypeChecker {
             }
         }
     }
-
+*/
     /*
      * TYPECHECKING METHODS
      */
@@ -437,7 +436,7 @@ public class TypeChecker {
                 .entrySet()) {
             final Environment.CoolClass curClass = e.getValue();
             if (curClass.builtin) {
-                continue;
+                continue;//skip builtin
             }
             log(MessageFormat.format("Typechecking methods of class {0}",
                     curClass));
@@ -451,11 +450,11 @@ public class TypeChecker {
                                 .format(
                                         "Pushing method argument {0} onto local environment",
                                         a));
-                        env.localTypes.push(a.name, a.type);
+                        env.localTypes.push(a.name, a.type);//push
                     }
                     log(MessageFormat.format("Local environment is {0}",
                             env.localTypes));
-                    check(curClass, method.node.right);
+                    check(curClass, method.node.right);//
                     for (@SuppressWarnings("unused")
                     final Environment.CoolAttribute a : method.arguments) {
                         log("Popping local environment");
