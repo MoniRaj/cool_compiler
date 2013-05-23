@@ -41,6 +41,7 @@ public class TreeWalker {
     protected Environment env;
     protected boolean type_safe;
     protected boolean debug;
+    protected boolean ast;
     protected HashMap<Integer, String> expr_types;
 
     protected Environment.CoolClass CURR_CLASS;
@@ -82,6 +83,7 @@ public class TreeWalker {
         this.debug = debug;
         this.type_safe = false;
         env = new Environment(debug);
+        ast = false; //TODO FIX LATER
 
         CURR_CLASS = null;
 
@@ -245,8 +247,7 @@ Helper Methods
                     check(curr_class, attr.expr); 
                     log(MessageFormat.format("Expr type: {0}; Attr type: {1}",
                             attr.expr.class_type, attr.type));
-                    if (!moreGeneralOrEqualTo(attr.expr.class_type,
-                            attr.type)) { 
+                    if (!moreGeneralOrEqualTo(attr.type, attr.expr.class_type)) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Attribute {0} has value of wrong type: {1}",
                                 attr, attr.expr.class_type)); 
@@ -290,8 +291,8 @@ Helper Methods
                     log(MessageFormat.format(
                             "Declared method type: {0}; Method body type: {1}",
                             method.type, method.expr.class_type));
-                    if (!moreGeneralOrEqualTo(method.type,
-                            method.expr.class_type)) {
+                    if (!moreGeneralOrEqualTo(method.expr.class_type,
+                            method.type)) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Method {0} has body of wrong type: {1}",
                                 method, method.expr.class_type));
@@ -353,7 +354,6 @@ Helper Methods
                             Environment.CoolClass bi_type = check(
                                     curr_class, 
                                     ((BlockItem) block.blockitems.get(0)).expr);
-                            nothingCheck(bi_type);
                             return setType(bi_type, e);
                         }
                         //Multi expr block
@@ -369,12 +369,10 @@ Helper Methods
                                     num_locals += 1;
                                 }
                                 last_type = check(curr_class, bi.expr);
-                                nothingCheck(last_type);
                             }
                             for (int i = 0; i < num_locals; i++) {
                                 env.local_types.pop();
                             }
-                            nothingCheck(last_type);
                             return setType(last_type, e);
                         }
                     }
@@ -622,7 +620,6 @@ Helper Methods
                     Environment.CoolClass bi_type = check(
                             curr_class, 
                             ((BlockItem) block.blockitems.get(0)).expr);
-                    nothingCheck(bi_type);
                     block_type = bi_type;
                 }
                 //Multi expr block
@@ -638,12 +635,10 @@ Helper Methods
                             num_locals += 1;
                         }
                         last_type = check(curr_class, bi.expr);
-                        nothingCheck(last_type);
                     }
                     for (int i = 0; i < num_locals; i++) {
                         env.local_types.pop();
                     }
-                    nothingCheck(last_type);
                     block_type = last_type;
                 }
                 env.local_types.pop();
@@ -727,7 +722,7 @@ Visit Methods
                     if ( parent_type != "") 
                     {
                         final Environment.CoolClass this_class = env.getClass(
-                                parent_type);
+                                ((ClassDecl) p.classlist.get(i)).type);
                         if (parent_type.equals("Int") || 
                             parent_type.equals("Boolean") || 
                             parent_type.equals("String")) 
@@ -745,7 +740,8 @@ Visit Methods
                     } 
                     else 
                     {
-                        final Environment.CoolClass this_class = env.getClass(parent_type);
+                        final Environment.CoolClass this_class = env.getClass(
+                                ((ClassDecl) p.classlist.get(i)).type);
                         final Environment.CoolClass parent_class = ANY;
                         this_class.parent = parent_class;
                         log(MessageFormat.format(
@@ -806,6 +802,9 @@ Visit Methods
             for (int i = 0; i < p.class_hierarchy.size(); i++) {
                 print("\"class\": { ");
                 CURR_CLASS = p.class_hierarchy.get(i);
+                if (CURR_CLASS.builtin) {
+                    continue;
+                }
                 //4. Bind attributes and methods
                 log("Binding attributes and methods: " + CURR_CLASS.name);
                 CURR_CLASS.node.accept(this);
@@ -1214,6 +1213,16 @@ Utility Methods
 
     protected boolean moreGeneralOrEqualTo(final Environment.CoolClass c1,
             Environment.CoolClass c2) throws Environment.EnvironmentException {
+        if (c1 == NOTHING) {
+            log("Nothing is subclass of all");
+            return true;
+        }
+        else if (c1 == NULL &&
+                (c2 != INT &&
+                 c2 != BOOLEAN &&
+                 c2 != UNIT)) {
+            return true;
+        }
         while (c2 != c1 && c2 != ANY) {
             c2 = c2.parent;
         }
@@ -1244,13 +1253,13 @@ Utility Methods
     }
 
     protected void print(String val) {
-        if (debug) {
+        if (ast) {
             System.out.print(val);
         }
     }
 
     protected void print(int val) {
-        if (debug) {
+        if (ast) {
             System.out.print(val);
         }
     }
