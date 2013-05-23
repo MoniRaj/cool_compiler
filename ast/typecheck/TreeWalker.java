@@ -70,7 +70,7 @@ public class TreeWalker {
     static public final int NOTEXPR = 14;
     static public final int NUMEXPR = 15;
     static public final int PLUSEXPR = 16;
-    static public final int PRIMARYEXPR = 17 ;
+    static public final int PRIMARYEXPR = 17;
     static public final int WHILEEXPR = 18;
 
         
