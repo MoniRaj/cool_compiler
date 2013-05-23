@@ -12,8 +12,7 @@
  *      6. typecheck attributes
  *      7. typecheck methods
  *
- * Much of this work is inspired (or directly written) by 
- *      Nick Chaimov (nchaimov@uoregon.edu), Winter 2010
+ * Much of this work is inspired (or directly written) by  Nick Chaimov (nchaimov@uoregon.edu), Winter 2010
  *
  * Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
  */
@@ -54,6 +53,26 @@ public class TreeWalker {
     protected final Environment.CoolClass INT;
     protected final Environment.CoolClass STRING;
     protected final Environment.CoolClass IO;
+    
+    static public final int ASSIGNEXPR = 1;
+    static public final int IFEXPR = 2;
+    static public final int DIVEXPR = 3;
+    static public final int DOTEXPR = 4;
+    static public final int EQUALSEXPR = 5;
+    static public final int ERREXPR = 6;
+    static public final int BOGUSEXPR = 7;
+    static public final int LEEXPR = 8;
+    static public final int LTEXPR = 9;
+    static public final int MATCHEXPR = 10;
+    static public final int MINUSEXPR = 11;
+    static public final int MULTEXPR = 12;
+    static public final int NEGEXPR = 13;
+    static public final int NOTEXPR = 14;
+    static public final int NUMEXPR = 15;
+    static public final int PLUSEXPR = 16;
+    static public final int PRIMARYEXPR = 17 ;
+    static public final int WHILEEXPR = 18;
+
         
     public TreeWalker(final Node root, final boolean debug)
             throws Environment.EnvironmentException {
@@ -64,7 +83,26 @@ public class TreeWalker {
         CURR_CLASS = null;
 
         expr_types = new HashMap<int, String>();
-        expr_types.put(   ); //put the types here 
+        //put the types here 
+        expr_types.put(1, ASSIGNEXPR );
+        expr_types.put(2, IFEXPR );
+        expr_types.put(3, DIVEXPR );
+        expr_types.put(4, DOTEXPR );
+        expr_types.put(5, EQUALSEXPR );
+        expr_types.put(6, ERREXPR );
+        expr_types.put(7, BOGUSEXPR );
+        expr_types.put(8, LEEXPR );
+        expr_types.put(9, LTEXPR );
+        expr_types.put(10, MATCHEXPR );
+        expr_types.put(11, MINUSEXPR );
+        expr_types.put(12, MULTEXPR );
+        expr_types.put(13, NEGEXPR );
+        expr_types.put(14, NOTEXPR );
+        expr_types.put(15, NUMEXPR );
+        expr_types.put(16, PLUSEXPR );
+        expr_types.put(17, PRIMARYEXPR );
+        expr_types.put(18, WHILEEXPR );
+        
         NOTHING = env.getClass("Nothing");
         NULL = env.getClass("Null");
         ANY = env.getClass("Any");

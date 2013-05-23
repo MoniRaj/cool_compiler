@@ -4,10 +4,12 @@ import ast.typecheck.*;
 public class NumExpr extends Expr
 {
 	public final int value;
+    static final int expr_type = 15;
+    
 	
 	public NumExpr(Number value)
 	{
-		super();
+		super(expr_type);
 		this.value = value.intValue();
 	}
 	

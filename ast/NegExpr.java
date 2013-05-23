@@ -3,11 +3,13 @@ package ast;
 import ast.typecheck.*;
 public class NegExpr extends Expr
 {
+    static final int expr_type = 13;
+
 	public final Expr expr;
 	
 	public NegExpr(Expr e)
 	{
-		super();
+		super(expr_type);
 		expr = e;
 	}
 	
