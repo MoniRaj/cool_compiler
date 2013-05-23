@@ -4,8 +4,11 @@ import ast.typecheck.*;
 public class BogusExpr extends Expr
 {
     public final String bogus;
+    static final int expr_type = 7;
+
 
     public BogusExpr(String s) {
+        super(expr_type);
         bogus = s;
     }
 	

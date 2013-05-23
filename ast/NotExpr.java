@@ -4,10 +4,12 @@ import ast.typecheck.*;
 public class NotExpr extends Expr
 {
 	public final Expr expr;
+    static final int expr_type = 14;
+
 	
 	public NotExpr(Expr e)
 	{
-		super();
+		super(expr_type);
 		expr = e;
 	}
 	

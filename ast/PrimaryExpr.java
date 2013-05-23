@@ -12,6 +12,7 @@ public class PrimaryExpr extends Expr
     public  String string;
     public  boolean bool;
 	public  Actuals actuals;
+    static final int expr_type = 17;
 
     public void initvars() {
         id = "";
@@ -28,7 +29,7 @@ public class PrimaryExpr extends Expr
 
 	public PrimaryExpr(String pt, String i, Actuals a)
 	{
-		super();
+		super(expr_type);
         initvars();
         primarytype = pt;
         if (pt.equals("new")) {
@@ -42,7 +43,7 @@ public class PrimaryExpr extends Expr
 	
     public PrimaryExpr(String pt, Block bl)
 	{
-		super();
+		super(expr_type);
         initvars();
         primarytype = pt;
         block = bl;
@@ -50,20 +51,20 @@ public class PrimaryExpr extends Expr
     
     public PrimaryExpr(String pt, Expr e)
 	{
-		super();
+		super(expr_type);
         initvars();
         primarytype = pt;
         expr = e;
     }
 
     public PrimaryExpr(String pt) {
-        super();
+        super(expr_type);
         initvars();
         primarytype = pt;
     }
 
     public PrimaryExpr(String pt, String val) {
-        super();
+        super(expr_type);
         initvars();
         primarytype = pt;
         if (pt.equals("id")) {
