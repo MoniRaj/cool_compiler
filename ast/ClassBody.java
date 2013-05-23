@@ -1,5 +1,5 @@
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 import java.util.ArrayList;
 public class ClassBody extends Node
 {

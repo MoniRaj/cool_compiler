@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class NegExpr extends Expr
 {
     static final int expr_type = 13;

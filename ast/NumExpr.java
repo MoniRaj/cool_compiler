@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class NumExpr extends Expr
 {
 	public final int value;

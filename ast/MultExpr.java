@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class MultExpr extends BinExpr
 {
     static final int expr_type = 12;

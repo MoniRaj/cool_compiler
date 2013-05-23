@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class EqualsExpr extends BinExpr
 {
     static final int expr_type = 5;

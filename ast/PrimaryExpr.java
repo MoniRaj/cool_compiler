@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class PrimaryExpr extends Expr
 {
     public  String primarytype;

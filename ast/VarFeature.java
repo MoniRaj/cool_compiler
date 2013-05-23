@@ -1,5 +1,5 @@
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class VarFeature extends Node 
 {
     public final String id;

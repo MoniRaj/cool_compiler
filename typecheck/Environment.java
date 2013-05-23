@@ -11,7 +11,7 @@
  *  Modified by: Paul Elliott and Monisha Balireddi (Spr 2013)
  *
  */
-package ast.typecheck;
+package typecheck;
 import ast.*;
 import beaver.*;
 import java.text.MessageFormat;
@@ -106,7 +106,7 @@ public class Environment {
         public String getInternalType() {
             final StringBuilder sb = new StringBuilder();
             sb.append(type.getInternalInstanceName());
-            sb.append("* (").append(parent.getInternalInstanceName()).append(
+            sb.append("* (").append(owner.getInternalInstanceName()).append(
                     " *");
             for (final CoolAttribute arg : arguments) {
                 sb.append(", ");
@@ -118,7 +118,7 @@ public class Environment {
         }
 
         public String getInternalName() {
-            return "@__method_" + parent + "_" + name;
+            return "@__method_" + owner + "_" + name;
         }
 
         public String getName() {
@@ -211,28 +211,29 @@ public class Environment {
         
 
         // Built-in methods of ANY
-        final CoolMethod toString = new CoolMethod("toString", string_class);
-        final CoolMethod equals = new CoolMethod("equals", boolean_class);
-        equals.arguments.add(new CoolAttribute("x", any_class));
+        final CoolMethod toString = new CoolMethod("toString", string_class, null);
+        final CoolMethod equals = new CoolMethod("equals", boolean_class, null);
+        equals.arguments.add(new CoolAttribute("x", any_class, null));
           
         addMethod(any_class, toString);
         addMethod(any_class, equals);
         
         
         // Built-in methods of IO
-        final CoolMethod abort = new CoolMethod("abort", nothing_class);
-        abort.arguments.add(new CoolAttribute("message", string_class));
-        final CoolMethod out = new CoolMethod("out", io_class);
-        out.arguments.add(new CoolAttribute("arg", string_class));
-        final CoolMethod is_null = new CoolMethod("is_null", boolean_class);
-        is_null.arguments.add(new CoolAttribute("arg", any_class));
-        final CoolMethod out_any = new CoolMethod("out_any", io_class);
-        out_any.arguments.add(new CoolAttribute("arg", any_class));
-        final CoolMethod in = new CoolMethod("in", string_class);
-        final CoolMethod symbol = new CoolMethod("symbol", symbol_class);
-        symbol.arguments.add(new CoolAttribute("name", string_class));
-        final CoolMethod symbol_name = new CoolMethod("symbol_name", string_class);
-        symbol_name.arguments.add(new CoolAttribute("sym", symbol_class));
+        final CoolMethod abort = new CoolMethod("abort", nothing_class, null);
+        abort.arguments.add(new CoolAttribute("message", string_class, null));
+        final CoolMethod out = new CoolMethod("out", io_class, null);
+        out.arguments.add(new CoolAttribute("arg", string_class, null));
+        final CoolMethod is_null = new CoolMethod("is_null", boolean_class, null);
+        is_null.arguments.add(new CoolAttribute("arg", any_class, null));
+        final CoolMethod out_any = new CoolMethod("out_any", io_class, null);
+        out_any.arguments.add(new CoolAttribute("arg", any_class, null));
+        final CoolMethod in = new CoolMethod("in", string_class, null);
+        final CoolMethod symbol = new CoolMethod("symbol", symbol_class, null);
+        symbol.arguments.add(new CoolAttribute("name", string_class, null));
+        final CoolMethod symbol_name = new CoolMethod(
+                "symbol_name", string_class, null);
+        symbol_name.arguments.add(new CoolAttribute("sym", symbol_class, null));
         
         addMethod(io_class, abort);
         addMethod(io_class, out);
@@ -248,48 +249,49 @@ public class Environment {
       
         
         // Built-in Methods of String
-        final CoolAttribute length = new CoolAttribute("length", int_class);
-        final CoolMethod length = new CoolMethod("length", int_class);
-        final CoolMethod concat = new CoolMethod("concat", string_class);
-        concat.arguments.add(new CoolAttribute("arg", string_class));
-        final CoolMethod substring = new CoolMethod("substring", string_class);
-        substring.arguments.add(new CoolAttribute("start", int_class));
-        substring.arguments.add(new CoolAttribute("end", int_class));
-        final CoolMethod charAt = new CoolMethod("charAt", int_class);
-        charAt.arguments.add(new CoolAttribute("index", int_class));
-        final CoolMethod indexOf = new CoolMethod("indexOf", int_class);
-        indexOf.arguments.add(new CoolAttribute("sub", string_class));
+        final CoolAttribute length = new CoolAttribute("length", int_class, null);
+        final CoolMethod lengthm = new CoolMethod("length", int_class, null);
+        final CoolMethod concat = new CoolMethod("concat", string_class, null);
+        concat.arguments.add(new CoolAttribute("arg", string_class, null));
+        final CoolMethod substring = new CoolMethod(
+                "substring", string_class, null);
+        substring.arguments.add(new CoolAttribute("start", int_class, null));
+        substring.arguments.add(new CoolAttribute("end", int_class, null));
+        final CoolMethod charAt = new CoolMethod("charAt", int_class, null);
+        charAt.arguments.add(new CoolAttribute("index", int_class, null));
+        final CoolMethod indexOf = new CoolMethod("indexOf", int_class, null);
+        indexOf.arguments.add(new CoolAttribute("sub", string_class, null));
         
         addAttribute(string_class, length);
-        addMethod(string_class, length);
+        addMethod(string_class, lengthm);
         addMethod(string_class, concat);
         addMethod(string_class, substring);
         addMethod(string_class, charAt);
         addMethod(string_class, indexOf);
         
         // Built-in Methods of Symbol
-        final CoolAttribute name = new CoolAttribute("name", string_class);
-        final CoolAttribute hash = new CoolAttribute("hash", int_class);
-        final CoolMethod hashcode = new CoolMethod("hashcode", int_class);
+        final CoolAttribute name = new CoolAttribute("name", string_class, null);
+        final CoolAttribute hash = new CoolAttribute("hash", int_class, null);
+        final CoolMethod hashcode = new CoolMethod("hashcode", int_class, null);
         
         addAttribute(symbol_class, name);
         addAttribute(symbol_class, hash);
         addMethod(symbol_class, hashcode);
         
         // Built-in Methods of ArrayAny
-        final CoolMethod length = new CoolMethod("length", int_class);
+        final CoolMethod lengthim = new CoolMethod("length", int_class, null);
         
-        final CoolMethod resize = new CoolMethod("resize", arrayany_class);
-        resize.arguments.add(new CoolAttribute("s", int_class));
+        final CoolMethod resize = new CoolMethod("resize", arrayany_class, null);
+        resize.arguments.add(new CoolAttribute("s", int_class, null));
         
-        final CoolMethod get = new CoolMethod("get", any_class);
-        get.arguments.add(new CoolAttribute("index", int_class));
+        final CoolMethod get = new CoolMethod("get", any_class, null);
+        get.arguments.add(new CoolAttribute("index", int_class, null));
         
-        final CoolMethod set = new CoolMethod("set", any_class);
-        set.arguments.add(new CoolAttribute("index", int_class));
-        set.arguments.add(new CoolAttribute("obj", any_class));
+        final CoolMethod set = new CoolMethod("set", any_class, null);
+        set.arguments.add(new CoolAttribute("index", int_class, null));
+        set.arguments.add(new CoolAttribute("obj", any_class, null));
         
-        addMethod(arrayany_class, length);
+        addMethod(arrayany_class, lengthim);
         addMethod(arrayany_class, resize);
         addMethod(arrayany_class, get);
         addMethod(arrayany_class, set);
@@ -335,7 +337,7 @@ public class Environment {
             parent = parent.parent;
         }
         log(MessageFormat.format("Adding attribute {0} to class {1}", m, c));
-        m.parent = c;
+        m.owner = c;
         c.attributes.put(m.name, m);
     }
 

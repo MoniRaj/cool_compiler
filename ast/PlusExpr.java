@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class PlusExpr extends BinExpr
 {
     static final int expr_type = 16;

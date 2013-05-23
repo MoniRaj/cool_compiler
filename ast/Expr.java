@@ -1,8 +1,8 @@
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public abstract class Expr extends Node
 {
-    public CoolClass class_type;
+    public Environment.CoolClass class_type;
     public int expr_type;
     
     public Expr(int type)

@@ -1,5 +1,4 @@
-package ast.typecheck;
-import ast.*;
+package typecheck;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.Map.Entry;

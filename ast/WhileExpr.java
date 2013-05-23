@@ -1,6 +1,6 @@
 
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public class WhileExpr extends Expr
 {
     public final Expr expr1;

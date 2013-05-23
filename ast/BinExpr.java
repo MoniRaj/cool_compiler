@@ -1,5 +1,5 @@
 package ast;
-import ast.typecheck.*;
+import typecheck.*;
 public abstract class BinExpr extends Expr
 {
 	public final Expr l;
