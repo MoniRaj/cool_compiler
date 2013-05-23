@@ -263,127 +263,150 @@ Helper Methods
     }
 
     public Environment.CoolClass check(final Environment.CoolClass curr_class,
-            final Expr expr) throws Environment.EnvironmentException,
+            final Expr e) throws Environment.EnvironmentException,
             TypeCheckException {
-        if (expr != null) {
-            switch (expr.expr_type) {
+        if (e != null) {
+            switch (e.expr_type) {
                 
                 case PRIMARYEXPR :
                     //Literals
-                    if ((PrimaryExpr) expr.primarytype.equals("boolean")) {
-                        return setType(BOOLEAN, expr);
+                    if ((PrimaryExpr) e.primarytype.equals("boolean")) {
+                        return setType(BOOLEAN, e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("integer")) {
-                        return setType(INT, expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("integer")) {
+                        return setType(INT, e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("string")) {
-                        return setType(STRING, expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("string")) {
+                        return setType(STRING, e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("id")) {
-                        return setType(env.lookupAttrType(curr_class, id), expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("id")) {
+                        return setType(env.lookupAttrType(curr_class, id), e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("this")) {
-                        return setType(curr_class, expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("this")) {
+                        return setType(curr_class, e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("new")) {
-                        Environment.CoolClass type = env.getClass(expr.type);
+                    else if ((PrimaryExpr) e.primarytype.equals("new")) {
+                        Environment.CoolClass type = env.getClass(e.type);
                         if (type == ANY || type == INT || type == BOOLEAN ||
                                 type == UNIT || type == SYMBOL) {
                             throw new TypeCheckException(
                                     "Illegal use of <new> with type: " + type);
                         }
-                        return setType(env.getClass(expr.type), expr);
+                        return setType(env.getClass(e.type), e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("null")) {
-                        return setType(NULL, expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("null")) {
+                        return setType(NULL, e);
                     }
-                    else if ((PrimaryExpr) expr.primarytype.equals("empty")) {
-                        return setType(UNIT, expr);
+                    else if ((PrimaryExpr) e.primarytype.equals("empty")) {
+                        return setType(UNIT, e);
                     }
                     //Block
-                    //TODO FINISH
-                    else if ((PrimaryExpr) expr.primarytype.equals("block")) {
-                        //empty block
-                        //one expr block
-                        //block : first expr = expr eval
-                        //block : first expr = local var (see type rules on pg 21)
+                    else if ((PrimaryExpr) e.primarytype.equals("block")) {
+                        PrimaryExpr block = (PrimaryExpr) e;
+                        //Empty block
+                        if (block.blockitems.size() == 0) {
+                            return setType(UNIT, e);
+                        else if ((block.blockitems.size() == 1) {
+                            //TODO check to make sure recursion works
+                            return setType(check(curr_class, 
+                                        (BlockItem) block.blockitems.get(i)), 
+                                        e); 
+                        }
+                        else {
+                            Environment.CoolClass last_type = UNIT;
+                            int num_locals = 0;
+                            for(int i = 0; i < block.blockitems.size; i++) {
+                                BlockItem bi = (BlockItem) block.blockitems.get(i);
+                                if (!bi.id.equals("")) {
+                                    Environment.CoolClass type = env.getClass(
+                                            bi.type);
+                                    env.local_types.push(bi.id, type);
+                                    num_locals += 1;
+                                }
+                                last_type = setType(check(curr_class, bi.e),bi);
+                            }
+                            for (int i = 0; i < num_locals; i++) {
+                                env.local_types.pop();
+                            }
+                            return setType(last_type, e);
+                        }
                     }
                     //( expr )
-                    else if ((PrimaryExpr) expr.primarytype.equals("parenexpr")) {
-                        return setType(check(curr_class, (PrimaryExpr) expr.expr),
-                                expr); //TODO check to make sure recursion works
+                    else if ((PrimaryExpr) e.primarytype.equals("parenexpr")) {
+                        return setType(check(curr_class, (PrimaryExpr) e.expr),
+                                e); //TODO check to make sure recursion works
                     }
                     //super.methodcall
-                    else if ((PrimaryExpr) expr.primarytype.equals("supercall")) {
+                    else if ((PrimaryExpr) e.primarytype.equals("supercall")) {
                         //Typecheck the exprs in actuals, if any
                         Environment.CoolClass superclass = curr_class.parent; 
-                        for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                        for (int i = 0; i < e.actuals.exprlist.size(); i++) {
                             check(curr_class, (Expr) a.exprlist.get(i));
                         }
                         log(MessageFormat.format("Looking up method {0} in {1}",
-                            expr.id, superclass));
+                            e.id, superclass));
                         final Environment.CoolMethod method = env.lookupMethod(
-                            superclass, expr.id);
+                            superclass, e.id);
                         if (method == null) {
                             throw new TypeCheckException(MessageFormat.format(
                                     "Tried to call method {0} in {1}, but method not found.",
-                                    expr.id, superclass));
+                                    e.id, superclass));
                         }
                         //Typecheck: compare formals to actuals (# and type)
-                        typecheckMethodArguments(method, expr.actuals);
-                        return setType(method.type, expr);
+                        typecheckMethodArguments(method, e.actuals);
+                        return setType(method.type, e);
                     }
                     //this.methodcall
-                    else if ((PrimaryExpr) expr.primarytype.equals("call")) {
+                    else if ((PrimaryExpr) e.primarytype.equals("call")) {
                         //Typecheck the exprs in actuals, if any
-                        for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                        for (int i = 0; i < e.actuals.exprlist.size(); i++) {
                             check(curr_class, (Expr) a.exprlist.get(i));
                         }
                         log(MessageFormat.format("Looking up method {0} in {1}",
-                            expr.id, curr_class));
+                            e.id, curr_class));
                         final Environment.CoolMethod method = env.lookupMethod(
-                            curr_class, expr.id);
+                            curr_class, e.id);
                         if (method == null) {
                             throw new TypeCheckException(MessageFormat.format(
                                     "Tried to call method {0} in {1}, but method not found.",
-                                    expr.id, curr_class));
+                                    e.id, curr_class));
                         }
                         //Typecheck: compare formals to actuals (# and type)
-                        typecheckMethodArguments(method, expr.actuals);
-                        return setType(method.type, expr);
+                        typecheckMethodArguments(method, e.actuals);
+                        return setType(method.type, e);
                     }
                     break;
                
                 //expr.methodcall
                 case DOTEXPR :
                     //Typecheck the exprs in actuals, if any
-                    for (int i = 0; i < expr.actuals.exprlist.size(); i++) {
+                    for (int i = 0; i < e.actuals.exprlist.size(); i++) {
                         check(curr_class, (Expr) a.exprlist.get(i));
                     }
                     Environment.CoolClass expr_cls = check(curr_class, expr.expr);
                     log(MessageFormat.format("Looking up method {0} in {1}",
-                            expr.id, expr_cls));
+                            e.id, expr_cls));
                     final Environment.CoolMethod method = env.lookupMethod(
-                            expr_cls, expr.id);
+                            expr_cls, e.id);
                     if (method == null) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Tried to call method {0} in {1}, but method not found.",
-                                expr.id, expr_cls));
+                                e.id, expr_cls));
                     }
                     //Typecheck: compare formals to actuals (# and type)
-                    typecheckMethodArguments(method, expr.actuals);
-                    return setType(method.type, expr);
+                    typecheckMethodArguments(method, e.actuals);
+                    return setType(method.type, e);
                     break;
 
                 //Assignments
                 case ASSIGNEXPR :
                     final Environment.CoolClass id_type = env.lookupAttrType(
-                            curr_class, expr.id);
+                            curr_class, e.id);
                     final Environment.CoolClass expr_type = check(curr_class,
-                            expr.expr);
+                            e.expr);
                     log(MessageFormat.format(
                             "Assignment: {0} has type {1}; expr has type {2}",
-                                    expr.id, id_type, expr_type));
+                                    e.id, id_type, expr_type));
                     if ((expr_type == NULL) &&
                             (id_type == BOOLEAN ||
                             id_type == INT ||
@@ -395,45 +418,33 @@ Helper Methods
                         log(MessageFormat.format(
                                 "Most specific parent in common is {0}",
                                 mostSpecificParent(id_type, expr_type)));
-                        return setType(UNIT, expr);
+                        return setType(UNIT, e);
                     } else {
                         throw new TypeCheckException(MessageFormat.format(
                                 "Expr of type {0} not compatible with {1} of type {2}",
-                                expr_type, expr.id, id_type));
+                                expr_type, e.id, id_type));
                     }
+                    break;
 
                 //Control statements
                 //TODO FINISH
-                case Terminals.IF: {
-                    check(curr_class, node.left);
-                    if (node.left.type != BOOLEAN) {
+                case IFEXPR :
+                    Environment.CoolClass if_type = check(curr_class, e.expr1);
+                    if (if_type != BOOLEAN) {
                         throw new TypeCheckException(MessageFormat.format(
                                 "If condition must be of type Bool, but {0} found",
-                                node.left.type));
+                                if_type));
                     }
-                    check(curr_class, node.center);
-                    check(curr_class, node.right);
-                    final Environment.CoolClass unionType = mostSpecificParent(
-                            node.center.type, node.right.type);
+                    Environment.CoolClass then_type = check(curr_class, e.expr2);
+                    Environment.CoolClass else_type = check(curr_class, e.expr3);
+                    final Environment.CoolClass union_type = mostSpecificParent(
+                            then_type, else_type);
                     log(MessageFormat.format(
                             "Then type: {0}; Else type: {1}; Union type: {2}",
-                            node.center.type, node.right.type, unionType));
-                    return setType(unionType, node);
-                }
-                //exprSeq ::= LBRACE expr:e SEMI optExprSeq:eseq RBRACE {: RESULT = new ASTnode(sym.SEMI, e, null, eseq, null); :};
-                case Terminals.SEMI: {
-                    // Check the mandatory first expression
-                    check(curr_class, node.left);
-                    Environment.CoolClass lastType = node.left.type;
-
-                    // Then check the optional remaining expressions,
-                    // if they are present.
-                    if (node.right != null) {
-                        lastType = checkSequence(curr_class, node.right);
-                    }
-                    return setType(lastType, node);
-                }
-                case Terminals.CASE: {
+                            then_type, else_type, union_type));
+                    return setType(union_type, e);
+                    break;
+                case CASEEXPR : 
                     check(curr_class, node.left);
                     List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>();
                     list = getCaseTypes(curr_class, node.right, list);
@@ -448,19 +459,17 @@ Helper Methods
                     log(MessageFormat.format("Union type of case statement is {0}",
                             caseClass));
                     return setType(caseClass, node);
-                }
-                case Terminals.WHILE: {
-                    check(curr_class, node.left);
-                    if (node.left.type != BOOLEAN) {
-                        throw new TypeCheckException(
-                                MessageFormat
-                                        .format(
-                                                "Loop condition of a WHILE loop must be a Bool, but found {0}",
-                                                node.left.type));
+                    break;
+                case WHILEEXPR :
+                    Environment.CoolClass pred_type = check(curr_class, e.expr1);
+                    if (pred_type != BOOLEAN) {
+                        throw new TypeCheckException(MessageFormat.format(
+                                "While predicate should be Bool, found {0}",
+                                pred_type));
                     }
-                    check(curr_class, node.right);
-                    return setType(ANY, node);
-                }
+                    check(curr_class, e.expr2);
+                    return setType(UNIT, e);
+                    break;
 
                 //Boolean operators
                 case LTEXPR:
@@ -545,13 +554,20 @@ Helper Methods
         final Iterator<Environment.CoolAttribute> f_it = formal_args.iterator();
 
         while (a_it.hasNext() && f_it.hasNext()) {
-            final Environment.CoolClass expected_type = f_it.next().type;
+            final Environment.CoolAttribute method_attr = f_it.next();
             final Environment.CoolClass actual_type = a_it.next();
-
-            if (!moreGeneralOrEqualTo(expected_type, actual_type)) {
+            if (actual_type == NULL &&
+                    (method_attr.type != BOOLEAN &&
+                     method_attr.type != INT &&
+                     method_attr.type != UNIT)) {
+                log(MessageFormat.format(
+                            "Passing Null for formal {0} of type {1},
+                            method_attr.name, method_attr.type));
+            }
+            else if (!moreGeneralOrEqualTo(method_attr.type, actual_type)) {
                 throw new TypeCheckException(MessageFormat.format(
                         "Expected argument of type {0}, but found {1}",
-                        expected_type, actual_type));
+                        method_attr.type, actual_type));
             }
         }
     }
