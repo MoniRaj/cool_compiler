@@ -121,8 +121,6 @@ public class TreeWalker {
 Helper Methods
 */
     
-    //TODO check that these helper methods work correctly
-
     protected void addMethod(MethodFeature mf) 
         throws Environment.EnvironmentException, TypeCheckException {
         final Environment.CoolClass return_type = env.getClass(
@@ -140,7 +138,7 @@ Helper Methods
         final Environment.CoolClass type = env.getClass(t);
         final Environment.CoolAttribute attr = new Environment.CoolAttribute(
                 i, type, e);
-        attr.node = n; //TODO check that this works
+        attr.node = n; 
         env.addAttribute(CURR_CLASS, attr);
         //node.type = t; //TODO do we need this?
     }
@@ -383,7 +381,7 @@ Helper Methods
                     //( expr )
                     else if (((PrimaryExpr) e).primarytype.equals("parenexpr")) {
                         return setType(check(curr_class, ((PrimaryExpr) e).expr),
-                                e); //TODO check to make sure recursion works
+                                e); 
                     }
                     //super.methodcall
                     else if (((PrimaryExpr) e).primarytype.equals("supercall")) {
@@ -500,20 +498,20 @@ Helper Methods
                             then_type, else_type, union_type));
                     return setType(union_type, e);
                 case MATCHEXPR : 
-                    check(curr_class, e.expr);
+                    check(curr_class, ((MatchExpr) e).expr);
                     List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>(); //List is a Linked list ! 
-                    Cases c = (Cases) e.cases;
+                    Cases c = (Cases) ((MatchExpr) e).cases;
                     list = getCaseTypes(curr_class, c, list); // check the getCaseTypes
                     final Iterator<Environment.CoolClass> iter = list.iterator(); // set an iterator for the linked list
-                    Environment.CoolClass caseClass = iter.next(); //Iterate over the linked list
+                    Environment.CoolClass case_class = iter.next(); //Iterate over the linked list
                     while (iter.hasNext()) 
                     {
-                        final Environment.CoolClass nextClass = iter.next();
-                        log(MessageFormat.format("Comparing {0} and {1}", caseClass, nextClass));
-                        caseClass = mostSpecificParent(caseClass, nextClass);
+                        final Environment.CoolClass next_class = iter.next();
+                        log(MessageFormat.format("Comparing {0} and {1}", case_class, next_class));
+                        case_class = mostSpecificParent(case_class, next_class);
                     }
-                    log(MessageFormat.format("Union type of case statement is {0}", caseClass));
-                    return setType(caseClass, e);
+                    log(MessageFormat.format("Union type of case statement is {0}", case_class));
+                    return setType(case_class, e);
                 case WHILEEXPR :
                     Environment.CoolClass pred_type = check(
                             curr_class, ((WhileExpr) e).expr1);
@@ -592,51 +590,66 @@ Helper Methods
     }
     
     
-    private List<Environment.CoolClass> getCaseTypes(final Environment.CoolClass curClass, final Cases c, final List<Environment.CoolClass> list) throws Environment.EnvironmentException, TypeCheckException 
+    protected List<Environment.CoolClass> getCaseTypes(
+            final Environment.CoolClass curr_class, final Cases c, 
+            final List<Environment.CoolClass> list) 
+            throws Environment.EnvironmentException, TypeCheckException 
     {
-        if (c != null) 
+        // iterate over caseslist
+        // typecast each element of the caselist to a case
+        // within this case, first check if the type isnull, else 
+        final Iterator<Case> iter = c.caseslist.iterator(); 
+        while (iter.hasNext()) 
         {
-            // iterate over caseslist
-            // typecast each element of the caselist to a case
-            // within this case, first check if the type isnull, else 
-            final Iterator<Environment.CoolClass> iter = c.caselist.iterator(); 
-            while (iter.hasNext()) 
+            Case caseclas = iter.next();
+            if( caseclas.isnull == false )
             {
-                Case caseclas = (Case) iter.next();
-                if( caseclas.isnull == false )
-                {
-                    final String name = (String) caseclas.id;
-                    // self case here
-                    final Environment.CoolClass type = env.getClass((String) caseclas.type);
-                    env.localTypes.push(name, type);
-                    log(MessageFormat.format("Pushing {0}:{1} onto local environment for CASE branch; localEnv is {2}", name, type, env.localTypes));
-                    // process the block, figure out the type of the block
-                    check(curClass, caseclas.type);
-                    env.localTypes.pop();
-                    log(MessageFormat.format("Popping local environment after CASE branch; localEnv is {0}", env.localTypes));
-                    list.add(caseclas.type);
+                final String name = caseclas.id;
+                // self case here
+                final Environment.CoolClass type = env.getClass(caseclas.type);
+                env.local_types.push(name, type);
+                log(MessageFormat.format("Pushing {0}:{1} onto local environment for CASE branch; localEnv is {2}", name, type, env.local_types));
+                
+                Block block = caseclas.block;
+                Environment.CoolClass block_type;
+                
+                //Empty block
+                if (block.blockitems.size() == 0) {
+                     block_type = UNIT;
                 }
+                //Single expr block
+                else if (block.blockitems.size() == 1) {
+                    Environment.CoolClass bi_type = check(
+                            curr_class, 
+                            ((BlockItem) block.blockitems.get(0)).expr);
+                    nothingCheck(bi_type);
+                    block_type = bi_type;
+                }
+                //Multi expr block
+                else {
+                    Environment.CoolClass last_type = UNIT;
+                    int num_locals = 0;
+                    for(int i = 0; i < block.blockitems.size(); i++) {
+                        BlockItem bi = (BlockItem) block.blockitems.get(i);
+                        if (!bi.id.equals("")) {
+                            Environment.CoolClass meb_type = env.getClass(
+                                    bi.type);
+                            env.local_types.push(bi.id, meb_type);
+                            num_locals += 1;
+                        }
+                        last_type = check(curr_class, bi.expr);
+                        nothingCheck(last_type);
+                    }
+                    for (int i = 0; i < num_locals; i++) {
+                        env.local_types.pop();
+                    }
+                    nothingCheck(last_type);
+                    block_type = last_type;
+                }
+                env.local_types.pop();
+                log(MessageFormat.format("Popping local environment after CASE branch; localEnv is {0}", env.local_types));
+                list.add(block_type);
             }
-            
-            // handle the null type (add it to the list) 
-            
-            // his code 
-            /* if (c.expr_type == Terminals.RIGHTARROW) 
-            {
-                final String name = (String) c.left.left.value;
-                if (name.equals("self")) 
-                {
-                    throw new TypeCheckException("The special variable 'self' cannot be bound in a case statement.");
-                }
-                final Environment.CoolClass type = env.getClass((String) c.left.right.value);
-                env.localTypes.push(name, type);
-                log(MessageFormat.format("Pushing {0}:{1} onto local environment for CASE branch; localEnv is {2}", name, type, env.localTypes));
-                check(curClass, c.right);
-                env.localTypes.pop();
-                log(MessageFormat.format("Popping local environment after CASE branch; localEnv is {0}", env.localTypes));
-                list.add(e.right.type);
-            } */
-            //till here
         }
         return list;
     }
@@ -700,7 +713,7 @@ Visit Methods
                 ClassDecl cls = (ClassDecl) p.classlist.get(i);
                 final Environment.CoolClass new_class = new Environment.CoolClass(
                         cls.type);
-                new_class.node = cls; //TODO make sure this works correctly
+                new_class.node = cls; 
                 env.addClass(new_class);
             }
             log("Added classes to class map");
@@ -750,7 +763,6 @@ Visit Methods
                             "Type check error: {0}", e));
                 }
             }
-<<<<<<< HEAD:typecheck/TreeWalker.java
             log("Class hierarchy complete.");
 
             //3. Check hierarchy for cycles, tree-ify class hierarchy
@@ -779,28 +791,7 @@ Visit Methods
                         }
                         curr_class = curr_class.parent;
                     }
-=======
-        }
-        log("Class hierarchy complete.");
-
-        //3. Check hierarchy for cycles, tree-ify class hierarchy
-        final HashSet<Environment.CoolClass> red = 
-                new HashSet<Environment.CoolClass>();
-        final HashSet<Environment.CoolClass> green = 
-                new HashSet<Environment.CoolClass>();
-        green.add(ANY);
-        final Iterator<Entry<String, Environment.CoolClass>> it = env.class_map
-                .entrySet().iterator();
-        while (it.hasNext()) {
-            final Entry<String, Environment.CoolClass> entry = it.next();
-            Environment.CoolClass curr_class = entry.getValue();
-            if (curr_class == NULL || curr_class == NOTHING)
-                continue; //Do nothing for null/nothing
-            while (!green.contains(curr_class)) {
-                if (red.contains(curr_class)) {
-                    throw new TypeCheckException("Class hierarchy is not a tree.");
->>>>>>> c160a8aee8fff6cad49f8bdbc73f487bdbae5474:ast/typecheck/TreeWalker.java
-                }
+               }
                 final Iterator<Environment.CoolClass> reds = red.iterator();
                 Environment.CoolClass red_class;
                 while (reds.hasNext()) {

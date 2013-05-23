@@ -18,7 +18,7 @@ import java.io.*;
 public class Driver {
     public static void main(String[] argv) 
       throws IOException, CoolParser.Exception,
-               EnvironmentException, TypeCheckException {
+               Environment.EnvironmentException, TreeWalker.TypeCheckException {
         try {
             if ( argv.length != 1 )
                 throw new Error( "Usage: java Driver <program>" );

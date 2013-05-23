@@ -10,8 +10,8 @@
 
 package main;
 
-import main.beaver.Symbol;
-import main.beaver.Scanner;
+import beaver.Symbol;
+import beaver.Scanner;
 
 %%
 
