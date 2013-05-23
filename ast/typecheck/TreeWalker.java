@@ -482,28 +482,27 @@ Helper Methods
                             then_type, else_type, union_type));
                     return setType(union_type, e);
                     break;
-                case CASEEXPR : 
-                    check(curr_class, node.left);
-                    List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>();
-                    list = getCaseTypes(curr_class, node.right, list);
-                    final Iterator<Environment.CoolClass> iter = list.iterator();
-                    Environment.CoolClass caseClass = iter.next();
-                    while (iter.hasNext()) {
+                case MATCHEXPR : 
+                    check(curr_class, e.expr);
+                    List<Environment.CoolClass> list = new LinkedList<Environment.CoolClass>(); //List is a Linked list ! 
+                    Cases c = (Cases) e.cases;
+                    list = getCaseTypes(curr_class, c, list); // check the getCaseTypes
+                    final Iterator<Environment.CoolClass> iter = list.iterator(); // set an iterator for the linked list
+                    Environment.CoolClass caseClass = iter.next(); //Iterate over the linked list
+                    while (iter.hasNext()) 
+                    {
                         final Environment.CoolClass nextClass = iter.next();
-                        log(MessageFormat.format("Comparing {0} and {1}",
-                                caseClass, nextClass));
+                        log(MessageFormat.format("Comparing {0} and {1}", caseClass, nextClass));
                         caseClass = mostSpecificParent(caseClass, nextClass);
                     }
-                    log(MessageFormat.format("Union type of case statement is {0}",
-                            caseClass));
-                    return setType(caseClass, node);
+                    log(MessageFormat.format("Union type of case statement is {0}", caseClass));
+                    return setType(caseClass, e);
                     break;
                 case WHILEEXPR :
                     Environment.CoolClass pred_type = check(curr_class, e.expr1);
-                    if (pred_type != BOOLEAN) {
-                        throw new TypeCheckException(MessageFormat.format(
-                                "While predicate should be Bool, found {0}",
-                                pred_type));
+                    if (pred_type != BOOLEAN) 
+                    {
+                        throw new TypeCheckException(MessageFormat.format("While predicate should be Bool, found {0}", pred_type));
                     }
                     check(curr_class, e.expr2);
                     return setType(UNIT, e);
@@ -571,6 +570,56 @@ Helper Methods
             }
         }
         return null;
+    }
+    
+    
+    private List<Environment.CoolClass> getCaseTypes(final Environment.CoolClass curClass, final Cases c, final List<Environment.CoolClass> list) throws Environment.EnvironmentException, TypeCheckException 
+    {
+        if (c != null) 
+        {
+            // iterate over caseslist
+            // typecast each element of the caselist to a case
+            // within this case, first check if the type isnull, else 
+            final Iterator<Environment.CoolClass> iter = c.caselist.iterator(); 
+            while (iter.hasNext()) 
+            {
+                Case caseclas = (Case) iter.next();
+                if( caseclas.isnull == false )
+                {
+                    final String name = (String) caseclas.id;
+                    // self case here
+                    final Environment.CoolClass type = env.getClass((String) caseclas.type);
+                    env.localTypes.push(name, type);
+                    log(MessageFormat.format("Pushing {0}:{1} onto local environment for CASE branch; localEnv is {2}", name, type, env.localTypes));
+                    // process the block, figure out the type of the block
+                    check(curClass, caseclas.type);
+                    env.localTypes.pop();
+                    log(MessageFormat.format("Popping local environment after CASE branch; localEnv is {0}", env.localTypes));
+                    list.add(caseclas.type);
+                }
+            }
+            
+            // handle the null type (add it to the list) 
+            
+            // his code 
+            /* if (c.expr_type == Terminals.RIGHTARROW) 
+            {
+                final String name = (String) c.left.left.value;
+                if (name.equals("self")) 
+                {
+                    throw new TypeCheckException("The special variable 'self' cannot be bound in a case statement.");
+                }
+                final Environment.CoolClass type = env.getClass((String) c.left.right.value);
+                env.localTypes.push(name, type);
+                log(MessageFormat.format("Pushing {0}:{1} onto local environment for CASE branch; localEnv is {2}", name, type, env.localTypes));
+                check(curClass, c.right);
+                env.localTypes.pop();
+                log(MessageFormat.format("Popping local environment after CASE branch; localEnv is {0}", env.localTypes));
+                list.add(e.right.type);
+            } */
+            //till here
+        }
+        return list;
     }
 
     protected void typecheckMethodArguments(final Environment.CoolMethod method,
@@ -695,8 +744,7 @@ Visit Methods
                 continue; //Do nothing for null/nothing
             while (!green.contains(curr_class)) {
                 if (red.contains(curr_class)) {
-                    throw new TypeCheckException(
-                            "Class hierarchy is not a tree.");
+                    throw new TypeCheckException("Class hierarchy is not a tree.");
                 }
                 else {
                     red.add(curr_class);
