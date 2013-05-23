@@ -10,7 +10,7 @@
  * @date: 4/11/13
  */
 package main;
-
+import typecheck.*;
 import ast.*;
 import beaver.*;
 import java.io.*;
@@ -29,6 +29,13 @@ public class Driver {
             System.out.println( "Parsed: "+argv[ 0 ]+" with no errors" );
             TreeWalker walker = new TreeWalker( program, true );
             program.accept( walker );
+            boolean type_safe = walker.isTypeSafe();
+            if (type_safe) {
+                System.out.println("Type checking successful.");
+            }
+            else {
+                System.err.println("Compilation failed: type check errors");
+            }
         }
         catch ( Exception exception ) {
             System.out.println( "Exception in Main "
