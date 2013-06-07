@@ -11,11 +11,14 @@ BEAVERJAR='../beaver/beaver-cc.jar'
 JAVAC='javac'
 JAVA='java'
 
-COOLFILE=$1
+COOLFILES=$@
 
 echo "Cleaning up old files"
 rm *.class
 rm ../ast/*.class
+rm ../beaver/*.class
+rm ../typecheck/*.class
+rm main.cool
 rm Terminals.java
 mv *.stat stat/
 
@@ -25,8 +28,14 @@ $JAVA -jar $BEAVERJAR -ctaT cool.grammar
 echo "Building scanner: ${JFLEX} scanner.flex"
 $JFLEX scanner.flex
 
-echo "Compiling: javac Driver.java CoolScanner.java CoolParser.java ErrorReport.java"
+echo "Compiling Cool compiler: javac Driver.java CoolScanner.java CoolParser.java ErrorReport.java"
 $JAVAC -classpath .. Driver.java CoolScanner.java CoolParser.java ErrorReport.java
 
-echo "Running: java Driver ${COOLFILE}"
-$JAVA -classpath .. main/Driver $COOLFILE 
+echo "Executing Cool compiler on source files: java Driver ${COOLFILES}"
+$JAVA -classpath .. main/Driver $COOLFILES || { echo 'Failed: Exiting.'; exit 1; }
+
+echo "Converting main.ll to main.s"
+$LLC main.ll || { echo 'Failed: Exiting.'; exit 1; }
+
+echo "Compiling .s files into executable"
+$CLANG driver.c main.ll -o main_program

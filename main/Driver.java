@@ -20,18 +20,32 @@ public class Driver {
       throws IOException, CoolParser.Exception,
                Environment.EnvironmentException, TreeWalker.TypeCheckException {
         try {
-            if ( argv.length != 1 )
-                throw new Error( "Usage: java Driver <program>" );
-            System.out.println( "Lexing: "+argv[ 0 ] );
+            if ( argv.length == 0 )
+                throw new Error( "Usage: java Driver <space-delimited list of programs>" );
+            System.out.println( "Collating all source files into main.cool" );
+            File collated_srcfile = new File( "main.cool" );
+            FileWriter output = new FileWriter( collated_srcfile );
+            for( int i = 0; i < argv.length; i++ )
+            {
+                BufferedReader br = new BufferedReader( new FileReader( argv[i] ) );
+                String line;
+                while ( ( line = br.readLine() ) != null )
+                {
+                    output.write(line);
+                }
+                br.close();
+            }
+            output.close();
             CoolParser parser = new CoolParser();
-            CoolScanner scanner = new CoolScanner( new FileInputStream( argv[ 0 ] ) );
+            CoolScanner scanner = new CoolScanner( new FileInputStream( "main.cool" ) );
             Program program = (Program) parser.parse( scanner );
-            System.out.println( "Parsed: "+argv[ 0 ]+" with no errors" );
+            System.out.println( "Parsed: main.cool with no errors" );
             TreeWalker walker = new TreeWalker( program, true );
             program.accept( walker );
             boolean type_safe = walker.isTypeSafe();
             if (type_safe) {
                 System.out.println("Type checking successful.");
+                //Run Code Generation
             }
             else {
                 System.err.println("Compilation failed: type check errors");

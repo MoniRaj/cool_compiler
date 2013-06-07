@@ -1,0 +1,18 @@
+Here is the example code from class Tuesday, May 21, fleshed out a bit and tested. 
+
+Files: 
+    Makefile holds the recipes for compiling the code.
+    driver.c is a simple driver program in C, to call ll_main.
+    dispatch.c is the simulation of object structures and object-oriented dispatch, coded
+       entirely in C.   (I'll repeat this exercise with llvm code for Thursday.) 
+    
+    mini.ll:  A tiny hand-coded llvm function example.  We'll expand on this soon. 
+
+    To test (on a unixoid, including Linux and MacOS; possibly also under cygwin on windows): 
+      - Edit the Makefile, changing the definition of LLVM to be where you put the LLVM tools
+      - "make dispatch"   (should create some .ll files as well as an executable called "dispatch")
+      - ./dispatch        (running the binary you created)
+
+
+(V1.0 M Young, 21 May 2013, 5:05pm:  questions to michal@cs.uoregon.edu, complaints to /dev/null)
+
