@@ -25,6 +25,16 @@ public class CodeGenerator {
 		}
 	}
 
+    private void o(final String msg) {
+        try {
+            output.append(msg + "\n");
+        }
+        catch (Exception e) {
+            System.err.println("Error occurred when appending code to buffer..likely problem: output buffer has not been initialized yet!");
+            e.printStackTrace();
+        }
+    }
+
 	public static class CodeGenerationException extends Exception {
 		private static final long serialVersionUID = 4478662362211669244L;
 		
@@ -88,12 +98,18 @@ public class CodeGenerator {
 	public CodeGenerator(final Environment env, final boolean debug)
 			throws Environment.EnvironmentException {
 		this.env = env;
-		OBJECT = env.getClass("Object");
-		BOOL = env.getClass("Bool");
-		INT = env.getClass("Int");
-		STRING = env.getClass("String");
-		IO = env.getClass("IO");
 		this.debug = debug;
+
+        NOTHING = env.getClass("Nothing");
+        NULL = env.getClass("Null");
+        ANY = env.getClass("Any");
+        ARRAYANY = env.getClass("ArrayAny");
+        BOOLEAN = env.getClass("Boolean");
+        UNIT = env.getClass("Unit");
+        SYMBOL = env.getClass("Symbol");
+        INT = env.getClass("Int");
+        STRING = env.getClass("String");
+        IO = env.getClass("IO");
 	}
 	
 	public String nextID() {
@@ -112,13 +128,17 @@ public class CodeGenerator {
 		output = new StringBuilder();
 		id = 0;
 		label = 0;
-		try {
-			
-			output
-					.append("@str.format = private constant [3 x i8] c\"%s\\00\"\n");
-			output
-					.append("@str.format2 = private constant [3 x i8] c\"%d\\00\"\n");
-			
+		try {	
+            //target triple
+            o("target triple = \"x86_64-apple-macosx10.7.0\"")
+            //String formatting for output
+			o("@str.format = private constant [3 x i8] c\"%s\\00\"");
+			o("@str.format2 = private constant [3 x i8] c\"%d\\00\"");
+            //empty char PE: needed?
+		    o("@emptychar = global i8 0");
+
+            log("\n--> Generating preamble: basic classes and such...");
+			generatePreamble();
 			log("\n--> Generating class descriptors...");
 			generateClassDescriptors();
 			log("\n--> Generating functions...");
@@ -126,10 +146,11 @@ public class CodeGenerator {
 			log("\n--> Generating main function...");
 			writeMainFunction();
 			
-			output.append("\ndeclare i32 @printf(i8* noalias, ...)\n");
-			output.append("declare noalias i8* @GC_malloc(i64)\n");
-			output.append("declare void @GC_init()\n");
-			output.append("declare i32 @strcmp(i8*, i8*)\n\n");
+            //PE: Do we need this stuff?
+			o("\ndeclare i32 @printf(i8* noalias, ...)");
+			o("declare noalias i8* @GC_malloc(i64)");
+			o("declare void @GC_init()");
+			o("declare i32 @strcmp(i8*, i8*)\n");
 		} catch (final Exception ex) {
 			System.err.println("*** Code generation failed!");
 			ex.printStackTrace();
@@ -138,9 +159,127 @@ public class CodeGenerator {
 		
 		return output.toString();
 	}
-/**	
+
+    /* This generates the class descriptors, class objects,
+     * and method descriptors for the basic.cool classes
+     */
+    protected void generatePreamble() {
+        o(";#################################################################");
+        o(";###                       basic types                         ###");
+        o(";#################################################################");
+        o("\n");
+
+        //nothing, null, any, arrayany, boolean, unit, symbol int, string, io
+        
+        //PE: Do nothing for Nothing and Null just yet..
+        //    Null can be implemented by setting the alloca pointer to null '0'
+        //    Nothing may not have to be implemented if we don't get to case stmts
+
+        o(";;;;;; Any class ;;;;;");
+        o("%class_Any = type {");
+        o("  %i32*,                                     ; null parent pointer");
+        o("  %class_String* ( %obj_Any* )*,             ; String toString(this)");
+        o("  %class_Boolean* ( %obj_Any*, %obj_Any* )*  ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+        o("%obj_Any = type {");
+        o("  %class_Any*                                ; class ptr");
+        o("}");
+        o("\n");
+        o("\n");
+
+        o(";;;;;; ArrayAny class ;;;;;");
+        o("%class_ArrayAny = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %obj_ArrayAny* (%obj_Int*)*,               ; constructor");
+        o("  %class_String* ( %obj_ArrayAny* )*,        ; String toString(this)");
+        o("  %class_Boolean* ( %obj_ArrayAny*, %obj_Any* )*,  ; Booln equals(this,x)");
+        o("  %obj_Int* ( %obj_ArrayAny* )*,             ; length(this)");
+        o("  %void ( %obj_ArrayAny*, i32 )*,            ; resize(this, int)");
+        o("  %obj_Any* ( %obj_ArrayAny*, i32 )*,        ; get(this, int)");
+        o("  %obj_Any* ( %obj_ArrayAny*, i32, %obj_Any* )*,  ; set(this, int, Any)");
+        o("}");
+        o("\n");
+
+        o("%obj_ArrayAny = type {");
+        o("  %class_ArrayAny*,                          ; class ptr");
+        o("  %i32,                                      ; length");
+        o("  [%i32 x ]*                                        ; class ptr");
+        o("}");
+        o("\n");
+        o("\n");
+
+        o(";;;;;; Boolean class ;;;;;");
+        o("%class_Boolean = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %obj_Boolean* ()*,                         ; constructor");
+        o("  %class_String ( %obj_Boolean* )*,          ; String toString(this)");
+        o("  %class_Boolean ( %obj_Boolean*, %obj_Any* )*  ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+        o(";;;;;; Unit class ;;;;;");
+        o("%class_Unit = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %class_String* ( %obj_Unit* )*,            ; String toString(this)");
+        o("  %class_Boolean* ( %obj_Unit*, %obj_Any* )* ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+        o(";;;;;; Symbol class ;;;;;");
+        o("%class_Symbol = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %class_String* ( %obj_Symbol* )*,          ; String toString(this)");
+        o("  %class_Boolean* ( %obj_Symbol*, %obj_Any* )*,  ; Booln equals(this,x)");
+        o("  %class_Int* ( %obj_Symbol* )*              ; Int hashCode(this)");
+        o("}");
+        o("\n");
+
+        o(";;;;;; Int class ;;;;;");
+        o("%class_Int = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %class_String* ( %obj_Int* )*,             ; String toString(this)");
+        o("  %class_Boolean* ( %obj_Int*, %obj_Any* )*  ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+        o(";;;;;; String class ;;;;;");
+        o("%class_String = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %class_String* ( %obj_String* )*,          ; String toString(this)");
+        o("  %class_Boolean* ( %obj_String*, %obj_Any* )*,  ; Booln equals(this,x)");
+        o("  %class_Int* ( %obj_String* )*,              ; Int length(this)");
+        o("  %class_String* ( %obj_String*, %obj_String* )*,  ; String concat(this, arg)");
+        o("  %class_String* ( %obj_String*, %obj_Int*, %obj_Int* )*,  ; String substring (this, start, end)");
+        o("  %class_Int* ( %obj_String*, %obj_Int* )*,  ; String charAt(this, index)");
+        o("  %class_Int* ( %obj_String*, %obj_String* )*  ; String indexOf(this, sub)");
+
+        o("}");
+        o("\n");
+
+        o(";;;;;; IO class ;;;;;");
+        o("%class_IO = type {");
+        o("  %class_Any*,                               ; parent pointer");
+        o("  %class_String* ( %obj_IO* )*,              ; String toString(this)");
+        o("  %class_Boolean* ( %obj_IO*, %obj_Any* )*,  ; Booln equals(this,x)");
+        o("  %void ( %obj_IO*, %obj_String* )*,     ; void abort(this, message)");
+        o("  %class_IO* ( %obj_IO*, %obj_String* )*,    ; IO out(this, message)");
+        o("  %class_Boolean* ( %obj_IO*, %obj_Any* )*,  ; Boolean is_null(this, arg)");
+        o("  %class_IO* ( %obj_IO*, %obj_Any* )*,   ; IO out_any(this, message)");
+        o("  %class_String* ( %obj_IO* )*,              ; String in(this)");
+        o("  %class_Symbol* ( %obj_IO*, %obj_String* )*,  ; Symbol symbol(this, name)");
+        o("  %class_String* ( %obj_IO*, %obj_Symbol* )*  ; String symbol_name(this, sym)");
+        o("}");
+        o("\n");
+
+        //TODO must override boolean tostring/equals
+        //      override symbol tostring
+        //      override int tostring and equals
+        //      override string tostring and equals
+    }
+
 	protected void generateClassDescriptors() {
-		output.append("@emptychar = global i8 0\n");
         //For each class
 		for (final Environment.CoolClass c : env.classes.values()) {
 			final StringBuilder b = new StringBuilder();
@@ -199,11 +338,11 @@ public class CodeGenerator {
 			}
 			b.append(" }\n");
 			
-			output.append(b);
+			o(b);
 		}
-		output.append("\n");
+		o("\n");
 	}
-	
+/**	
 	protected void generateFunctions() throws CodeGenerationException,
 			Environment.EnvironmentException {
 		
@@ -212,30 +351,30 @@ public class CodeGenerator {
 				if (m.parent.builtin && m.builtinImplementation == null) {
 					continue;
 				}
-				output.append("define ");
-				output.append(m.type.getInternalInstanceName());
-				output.append(" * ");
-				output.append(m.getInternalName());
-				output.append("(").append(m.parent.getInternalInstanceName())
+				o("define ");
+				o(m.type.getInternalInstanceName());
+				o(" * ");
+				o(m.getInternalName());
+				o("(").append(m.parent.getInternalInstanceName())
 						.append(" * %this");
 				int index = 1;
 				for (final Environment.CoolAttribute a : m.arguments) {
 					a.index = index++;
-					output.append(", ");
-					output.append(a.type.getInternalInstanceName());
-					output.append(" * %v");
-					output.append(a.index);
+					o(", ");
+					o(a.type.getInternalInstanceName());
+					o(" * %v");
+					o(a.index);
 				}
-				output.append(") {\n");
+				o(") {\n");
 				if (m.builtinImplementation != null) {
-					output.append(m.builtinImplementation);
+					o(m.builtinImplementation);
 				} else {
 					final Register r = new Register("%this", m.parent
 							.getInternalInstanceName()
 							+ "*");
 					generateFunctionBody(c, r, m);
 				}
-				output.append("\n}\n\n");
+				o("\n}\n\n");
 			}
 		}
 		
@@ -258,12 +397,12 @@ public class CodeGenerator {
 			if (!body.type.equals(m.type.getInternalInstanceName() + "*")) {
 				body = bitcast(body, m.type.getInternalInstanceName() + "*");
 			}
-			output.append("\tret ").append(body.typeAndName()).append("\n");
+			o("\tret ").append(body.typeAndName()).append("\n");
 		}
 	}
 	
 	protected void comment(final String comment) {
-		output.append("\t; ").append(comment).append("\n");
+		o("\t; ").append(comment).append("\n");
 	}
 	
 	protected Register generate(final Environment.CoolClass cls, Register thiz,
@@ -441,7 +580,7 @@ public class CodeGenerator {
 						.getInternalInstanceName()
 						+ "*");
 				
-				output.append("\t; calling method ").append(method)
+				o("\t; calling method ").append(method)
 						.append("\n");
 				final Register call = call(methodInst, cast, method.type
 						.getInternalInstanceName()
@@ -485,7 +624,7 @@ public class CodeGenerator {
 				final Register ifResult = nextRegister(n.type
 						.getInternalInstanceName()
 						+ "*");
-				output.append("\t").append(ifResult.name).append(" = phi ")
+				o("\t").append(ifResult.name).append(" = phi ")
 						.append(ifResult.type).append(" [ ").append(
 								trueResult.name).append(", %").append(
 								trueBranch).append(" ], [ ").append(
@@ -547,7 +686,7 @@ public class CodeGenerator {
 				comment("START isvoid");
 				final Register value = generate(cls, thiz, n.left);
 				final Register resVal = nextRegister("i1");
-				output.append("\t").append(resVal).append(" = icmp eq ")
+				o("\t").append(resVal).append(" = icmp eq ")
 						.append(value.typeAndName()).append(", null").append(
 								"\n");
 				comment("END isvoid");
@@ -567,7 +706,7 @@ public class CodeGenerator {
 				final Register condVal = load(condPtr);
 				
 				final Register resVal = nextRegister("i1");
-				output.append("\t").append(resVal).append(" = icmp ne ")
+				o("\t").append(resVal).append(" = icmp ne ")
 						.append(condVal.typeAndName()).append(", 0\n");
 				
 				final Register resultPtr = instantiate(BOOL);
@@ -600,7 +739,7 @@ public class CodeGenerator {
 				}
 				
 				final Register resVal = nextRegister("i1");
-				output.append("\t").append(resVal).append(" = icmp ")
+				o("\t").append(resVal).append(" = icmp ")
 						.append(op).append(" ").append(int1Val.typeAndName())
 						.append(", ").append(int2Val.name).append("\n");
 				
@@ -644,7 +783,7 @@ public class CodeGenerator {
 					final Register int2Val = load(int2Ptr);
 					
 					final Register resVal = nextRegister("i1");
-					output.append("\t").append(resVal).append(" = icmp eq ")
+					o("\t").append(resVal).append(" = icmp eq ")
 							.append(" ").append(int1Val.typeAndName()).append(
 									", ").append(int2Val.name).append("\n");
 					final Register resultPtr = instantiate(BOOL);
@@ -669,7 +808,7 @@ public class CodeGenerator {
 					final Register int2Val = load(int2Ptr);
 					
 					final Register resVal = nextRegister("i1");
-					output.append("\t").append(resVal).append(" = icmp eq ")
+					o("\t").append(resVal).append(" = icmp eq ")
 							.append(" ").append(int1Val.typeAndName()).append(
 									", ").append(int2Val.name).append("\n");
 					final Register resultPtr = instantiate(BOOL);
@@ -695,13 +834,13 @@ public class CodeGenerator {
 					
 					final Register call = nextRegister("i32");
 					
-					output.append("\t").append(call.name).append(
+					o("\t").append(call.name).append(
 							" = call i32 @strcmp(").append(
 							int1Val.typeAndName()).append(", ").append(
 							int2Val.typeAndName()).append(")\n");
 					
 					final Register resVal = nextRegister("i1");
-					output.append("\t").append(resVal).append(" = icmp eq ")
+					o("\t").append(resVal).append(" = icmp eq ")
 							.append(" ").append(call.typeAndName()).append(
 									", 0\n");
 					
@@ -718,7 +857,7 @@ public class CodeGenerator {
 					final Register arg2 = generate(cls, thiz, n.right);
 					
 					final Register resVal = nextRegister("i1");
-					output.append("\t").append(resVal).append(" = icmp eq ")
+					o("\t").append(resVal).append(" = icmp eq ")
 							.append(" ").append(arg1.typeAndName())
 							.append(", ").append(arg2.name).append("\n");
 					
@@ -809,18 +948,18 @@ public class CodeGenerator {
 	}
 	
 	protected void branch(final String label) {
-		output.append("\tbr label %").append(label).append("\n");
+		o("\tbr label %").append(label).append("\n");
 	}
 	
 	protected void branch(final Register cond, final String trueBranch,
 			final String falseBranch) {
-		output.append("\tbr ").append(cond.typeAndName()).append(", label %")
+		o("\tbr ").append(cond.typeAndName()).append(", label %")
 				.append(trueBranch).append(", label %").append(falseBranch)
 				.append("\n");
 	}
 	
 	protected void writeLabel(final String label) {
-		output.append(label).append(":\n");
+		o(label).append(":\n");
 	}
 	
 	private Register intOpt(final int kind, final Register r1, final Register r2)
@@ -842,22 +981,22 @@ public class CodeGenerator {
 		final Register temp = nextRegister("i32");
 		switch (kind) {
 		case sym.PLUS:
-			output.append("\t").append(temp.name).append(" = add ").append(
+			o("\t").append(temp.name).append(" = add ").append(
 					r1Int.typeAndName()).append(", ").append(r2Int.name)
 					.append("\n");
 			break;
 		case sym.MINUS:
-			output.append("\t").append(temp.name).append(" = sub ").append(
+			o("\t").append(temp.name).append(" = sub ").append(
 					r1Int.typeAndName()).append(", ").append(r2Int.name)
 					.append("\n");
 			break;
 		case sym.TIMES:
-			output.append("\t").append(temp.name).append(" = mul ").append(
+			o("\t").append(temp.name).append(" = mul ").append(
 					r1Int.typeAndName()).append(", ").append(r2Int.name)
 					.append("\n");
 			break;
 		case sym.DIV:
-			output.append("\t").append(temp.name).append(" = sdiv ").append(
+			o("\t").append(temp.name).append(" = sdiv ").append(
 					r1Int.typeAndName()).append(", ").append(r2Int.name)
 					.append("\n");
 			break;
@@ -895,7 +1034,7 @@ public class CodeGenerator {
 	
 	private void writeMainFunction() throws Environment.EnvironmentException,
 			CodeGenerationException {
-		output.append("define i32 @main() {\n\tcall void @GC_init()\n");
+		o("define i32 @main() {\n\tcall void @GC_init()\n");
 		final Environment.CoolClass mainClass = env.getClass("Main");
 		final Environment.CoolMethod mainMethod = env.lookupMethod(mainClass,
 				"main");
@@ -905,11 +1044,11 @@ public class CodeGenerator {
 				.getInternalDescriptorName(), mainClass.getInternalClassName()
 				+ "*"), mainMethod.getInternalType() + "*", 0, mainMethod.index);
 		final Register mainMethodInst = load(mainMethodPtr);
-		// output.append("\t; ").append(mainMethodPtr.typeAndName()).append("\n");
+		// o("\t; ").append(mainMethodPtr.typeAndName()).append("\n");
 		call(mainMethodInst, mainInst, mainMethod.type
 				.getInternalInstanceName()
 				+ "*");
-		output.append("\tret i32 0\n}\n\n");
+		o("\tret i32 0\n}\n\n");
 	}
 	
 	private Register call(final Register methodPtr, final Register thiz,
@@ -920,25 +1059,25 @@ public class CodeGenerator {
 	private Register call(final Register methodPtr, final Register thiz,
 			final String retType, final List<Register> args) {
 		final Register call = nextRegister(retType);
-		output.append("\t").append(call.name).append(" = call ")
+		o("\t").append(call.name).append(" = call ")
 				.append(retType).append(" ").append(methodPtr.name).append("(")
 				.append(thiz.typeAndName());
 		for (final Register r : args) {
-			output.append(", ").append(r.typeAndName());
+			o(", ").append(r.typeAndName());
 		}
-		output.append(")\n");
+		o(")\n");
 		return call;
 	}
 	
 	private Register instantiate(final Environment.CoolClass cls)
 			throws CodeGenerationException, Environment.EnvironmentException {
-		output.append("\t; START instantiating ").append(cls).append("\n");
+		o("\t; START instantiating ").append(cls).append("\n");
 		final Register result = nextRegister(cls.getInternalInstanceName()
 				+ "**");
 		alloca(result);
 		malloc(result, result.derefType());
 		final Register instance = load(result);
-		output.append("\t; setting class pointer\n");
+		o("\t; setting class pointer\n");
 		final Register classPtr = getElementPtr(instance, cls
 				.getInternalClassName()
 				+ "**", 0, 0);
@@ -947,7 +1086,7 @@ public class CodeGenerator {
 		store(clazz, classPtr);
 		int i = 1;
 		for (final Environment.CoolAttribute a : cls.attrList) {
-			output.append("\t; START attribute ").append(a).append(" of ")
+			o("\t; START attribute ").append(a).append(" of ")
 					.append(cls).append("\n");
 			final Register attrPtr = getElementPtr(instance, a.type
 					.getInternalInstanceName()
@@ -962,19 +1101,19 @@ public class CodeGenerator {
 						+ "*"), attrPtr);
 			}
 			i++;
-			output.append("\t; END attribute ").append(a).append(" of ")
+			o("\t; END attribute ").append(a).append(" of ")
 					.append(cls).append("\n");
 		}
 		
 		if (cls.builtin) {
 			if (cls == STRING) {
-				output.append("\t; Setting new String to default (empty)\n");
+				o("\t; Setting new String to default (empty)\n");
 				setString(instance, "");
 			} else if (cls == INT) {
-				output.append("\t; Setting new Int to default (0)\n");
+				o("\t; Setting new Int to default (0)\n");
 				setInt(instance, 0);
 			} else if (cls == BOOL) {
-				output.append("\t; Setting new Bool to default (false)\n");
+				o("\t; Setting new Bool to default (false)\n");
 				setBool(instance, false);
 			}
 		}
@@ -982,7 +1121,7 @@ public class CodeGenerator {
 		int i2 = 1;
 		for (final Environment.CoolAttribute a : cls.attrList) {
 			if (a.node.right != null) {
-				output.append("\t; Initialize ").append(a).append(
+				o("\t; Initialize ").append(a).append(
 						" to introduced value\n");
 				final Register attrPtr = getElementPtr(instance, a.type
 						.getInternalInstanceName()
@@ -997,7 +1136,7 @@ public class CodeGenerator {
 			i2++;
 		}
 		
-		output.append("\t; END instantiating ").append(cls).append("\n");
+		o("\t; END instantiating ").append(cls).append("\n");
 		
 		return result;
 	}
@@ -1020,7 +1159,7 @@ public class CodeGenerator {
 		store(new Register("" + len, "i32"), lenPtr);
 		final Register charPtr = getElementPtr(str, "i8 **", 0, 2);
 		final Register charArrPtr = mallocCharArray(len);
-		output.append("\tstore ").append(charArrPtr.derefType()).append(" c\"")
+		o("\tstore ").append(charArrPtr.derefType()).append(" c\"")
 				.append(val).append("\\00\", ")
 				.append(charArrPtr.typeAndName()).append("\n");
 		final Register castCharArrPtr = bitcast(charArrPtr, "i8 *");
@@ -1029,38 +1168,38 @@ public class CodeGenerator {
 	
 	private Register bitcast(final Register r, final String type) {
 		final Register result = nextRegister(type);
-		output.append("\t").append(result.name).append(" = bitcast ").append(
+		o("\t").append(result.name).append(" = bitcast ").append(
 				r.typeAndName()).append(" to ").append(type).append("\n");
 		return result;
 	}
 	
 	private void store(final Register value, final Register dest) {
-		output.append("\tstore ").append(value.typeAndName()).append(", ")
+		o("\tstore ").append(value.typeAndName()).append(", ")
 				.append(dest.typeAndName()).append("\n");
 	}
 	
 	private Register getElementPtr(final Register r, final String type,
 			final int... args) {
 		final Register result = nextRegister(type);
-		output.append("\t").append(result.name).append(" = getelementptr ")
+		o("\t").append(result.name).append(" = getelementptr ")
 				.append(r.typeAndName());
 		for (final int i : args) {
-			output.append(", ");
-			output.append("i32 ").append(i);
+			o(", ");
+			o("i32 ").append(i);
 		}
-		output.append("\n");
+		o("\n");
 		return result;
 	}
 	
 	private Register alloca(final Register r) throws CodeGenerationException {
-		output.append("\t").append(r.name).append(" = alloca ").append(
+		o("\t").append(r.name).append(" = alloca ").append(
 				r.derefType()).append("\n");
 		return r;
 	}
 	
 	private Register load(final Register from) throws CodeGenerationException {
 		final Register result = nextRegister(from.derefType());
-		output.append("\t").append(result.name).append(" = load ").append(
+		o("\t").append(result.name).append(" = load ").append(
 				from.typeAndName()).append("\n");
 		return result;
 	}
@@ -1069,11 +1208,11 @@ public class CodeGenerator {
 		final Register charArr = nextRegister("[" + len + " x i8]*");
 		
 		final Register call = nextRegister("i8 *");
-		output.append("\t").append(call.name).append(
+		o("\t").append(call.name).append(
 				" = call noalias i8* @GC_malloc(i64 ").append(len)
 				.append(")\n");
 		
-		output.append("\t").append(charArr.name).append(" = bitcast ").append(
+		o("\t").append(charArr.name).append(" = bitcast ").append(
 				call.typeAndName()).append(" to ").append(charArr.type).append(
 				"\n");
 		
@@ -1083,23 +1222,23 @@ public class CodeGenerator {
 	private Register malloc(final Register r, final String type) {
 		final Register size = nextRegister(type);
 		final Register cast = nextRegister("i64");
-		output.append("\t").append(size.name).append(" = getelementptr ")
+		o("\t").append(size.name).append(" = getelementptr ")
 				.append(size.type).append(" null, i32 1\n");
-		output.append("\t").append(cast.name).append(" = ptrtoint ").append(
+		o("\t").append(cast.name).append(" = ptrtoint ").append(
 				type).append(" ").append(size.name).append(" to ").append(
 				cast.type).append("\n");
 		
 		final Register call = nextRegister("i8 *");
-		output.append("\t").append(call.name).append(
+		o("\t").append(call.name).append(
 				" = call noalias i8* @GC_malloc(i64 ").append(cast.name)
 				.append(")\n");
 		
 		final Register cast2 = nextRegister(type);
-		output.append("\t").append(cast2.name).append(" = bitcast ").append(
+		o("\t").append(cast2.name).append(" = bitcast ").append(
 				call.typeAndName()).append(" to ").append(cast2.type).append(
 				"\n");
 		
-		output.append("\tstore ").append(cast2.typeAndName()).append(", ")
+		o("\tstore ").append(cast2.typeAndName()).append(", ")
 				.append(r.type).append(" ").append(r.name).append("\n");
 		return r;
 	}

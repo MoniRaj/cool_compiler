@@ -20,14 +20,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-//TODO add back in basic classes, methods, attributes from basic.cool
-
 public class Environment {
 
     public static class CoolAttribute {
         public String name;
         public CoolClass type;
-        public Node node; //TODO check this
+        public Node node; 
         public CoolClass owner;
         public Expr expr;
 
@@ -53,7 +51,7 @@ public class Environment {
         public List<CoolMethod> method_list = new LinkedList<CoolMethod>();
         public HashMap<String, CoolAttribute> attributes = new HashMap<String, CoolAttribute>();
         public List<CoolAttribute> attr_list = new LinkedList<CoolAttribute>();
-        public Node node; //TODO check this
+        public Node node;
         public boolean builtin = false;
         public boolean attr_inherit_done = false;
         public boolean method_inherit_done = false;
@@ -73,15 +71,15 @@ public class Environment {
         }
 
         public String getInternalClassName() {
-            return "%__class_" + name;
+            return "%class_" + name;
         }
 
         public String getInternalInstanceName() {
-            return "%__instance_" + name;
+            return "%obj_" + name;
         }
 
         public String getInternalDescriptorName() {
-            return "@_" + name;
+            return "@" + name;
         }
     }
 
@@ -90,7 +88,7 @@ public class Environment {
         public List<CoolAttribute> arguments = new LinkedList<CoolAttribute>();
         public CoolClass type;
         public Expr expr;
-        public Node node; //TODO check this
+        public Node node;
         public CoolClass owner;
         public String builtin_implementation = null;
 
@@ -162,7 +160,7 @@ public class Environment {
     public HashMap<String, CoolClass> class_map = new HashMap<String, CoolClass>();
 
     public HashStack<String, CoolClass> local_types = new HashStack<String, CoolClass>();
-   // public HashStack<String, CodeGenerator.Register> registers = new HashStack<String, CodeGenerator.Register>(); //PE not needed yet
+    public HashStack<String, CodeGenerator.Register> registers = new HashStack<String, CodeGenerator.Register>(); //PE not needed yet
 
     public Environment() throws EnvironmentException {
         this(false);
