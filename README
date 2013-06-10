@@ -34,7 +34,7 @@ This directory should contain:
         4. Parser.java - part of Beaver api
         5. ParsingTables.java - part of Beaver api
         6. beaver-cc-0.9.11.jar - jar file used to execute Beaver on a grammar file
-        7. beaver-cc.jar - (older) jar file used to " " " 
+        7. beaver-cc.jar - (older) jar file used to execute Beaver on a grammar file
     c. ast/
         [This directory contains all of the Java class files necessary
          for building the AST--including abstract syntax classes. 
@@ -61,9 +61,9 @@ may modify BEAVERJAR in test.sh to use a different jar file.
 Next, chmod +x test.sh and run via:
     ./test.sh <filename>
 where <filename> is a path to a cool program. For example:
-    ./test.sh cool_programs/basic.cool.cool
+    ./test.sh cool_programs/Pair.cool.cool
 The script will compile the parser, followed by the scanner,
 and then run everything and build the AST. The AST will be 
 printed to the console (stdout) in the form of a JSON string.
 
-Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu.
+Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu or Monisha Balireddi at monishab@cs.uoregon.edu
