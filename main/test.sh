@@ -11,6 +11,9 @@ BEAVERJAR='../beaver/beaver-cc.jar'
 JAVAC='javac'
 JAVA='java'
 
+LLC='../build/Debug+Asserts/bin/llc'
+CLANG='../build/Debug+Asserts/bin/clang'
+
 COOLFILES=$@
 
 echo "Cleaning up old files"

@@ -12,6 +12,7 @@
  *
  */
 package typecheck;
+import main.CodeGenerator;
 import ast.*;
 import beaver.*;
 import java.text.MessageFormat;

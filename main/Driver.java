@@ -19,6 +19,7 @@ public class Driver {
     public static void main(String[] argv) 
       throws IOException, CoolParser.Exception,
                Environment.EnvironmentException, TreeWalker.TypeCheckException {
+        boolean showCode = false;
         try {
             if ( argv.length == 0 )
                 throw new Error( "Usage: java Driver <space-delimited list of programs>" );
@@ -31,7 +32,7 @@ public class Driver {
                 String line;
                 while ( ( line = br.readLine() ) != null )
                 {
-                    output.write(line);
+                    output.write(line + "\n");
                 }
                 br.close();
             }
@@ -45,7 +46,21 @@ public class Driver {
             boolean type_safe = walker.isTypeSafe();
             if (type_safe) {
                 System.out.println("Type checking successful.");
+                System.out.println("======================================");
                 //Run Code Generation
+                System.err.println("Beginning code generation...");
+                final CodeGenerator codeGenerator = new CodeGenerator(
+                        walker.getEnvironment(), true);
+                final String code = codeGenerator.generateCode();
+                System.err.println("Done generating code\n\n");
+                FileWriter fw = new FileWriter("main.ll");
+                BufferedWriter bw = new BufferedWriter(fw);
+                bw.write(code);
+                bw.close();
+                if (showCode) {
+                    //PE fix this maybe..probably not
+                    System.err.println(code);
+                }
             }
             else {
                 System.err.println("Compilation failed: type check errors");
