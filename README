@@ -48,9 +48,9 @@ may modify BEAVERJAR in test.sh to use a different jar file.
 Next, chmod +x test.sh and run via:
     ./test.sh <filename>
 where <filename> is a path to a cool program. For example:
-    ./test.sh cool_programs/basic.cool.cool
+    ./test.sh cool_programs/Pair.cool.cool
 The script will compile the parser, followed by the scanner,
 and then run everything and build the AST. The AST will be 
 printed to the console (stdout) in the form of a JSON string.
 
-Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu
+Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu or Monisha Balireddi at monishab@cs.uoregon.edu

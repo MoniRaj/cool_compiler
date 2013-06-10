@@ -12,6 +12,7 @@
  *
  */
 package main
+import ast.*;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -287,7 +288,77 @@ public class CodeGenerator {
 			b.append(" = type { ");
 			b.append(c.parent.getInternalClassName());
 			b.append("*");
+            
+            
 			int index = 1;
+            //add constructor stuff
+            b.append(", ");
+            b.append("\n");
+            b.append("%obj_");
+            b.append(c.getInternalClassName());
+            b.append("*");
+            b.append(" (");
+            //cast c.node into class declaration
+            ClassDecl decl = (ClassDecl) c.node;
+            ClassVarFormals cvf = (ClassVarFormals) decl.varformals;
+            
+            //iterate over cvf.formalvarlist 
+            
+            //Iterator iterator = cvf.formalvarlist.iterator();
+            for (int i = 0; i < cvf.formalvarlist.size(); i++)
+            //while(iterator.hasNext())
+            {
+                //ClassFormal cd = (ClassFormal) iterator.next();
+                ClassFormal cd = (ClassFormal) formalvarlist.get(i);
+                if(cd.type == int)
+                {
+                    //add i32
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" i32");
+                    }
+                    else
+                    {
+                        b.append(" i32,");
+                    }
+                }
+                else if(cd.type == boolean)
+                {
+                    //add i1
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" i1");
+                    }
+                    else
+                    {
+                        b.append(" i1,");
+                    }
+                }
+                else
+                {
+                    //add %obj_cd.type *
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" %obj_");
+                        b.append(cd.type);
+                        b.append("*");
+                    }
+                    else
+                    {
+                        b.append(" %obj_");
+                        b.append(cd.type);
+                        b.append("*,");
+                    }
+                }
+            }
+            b.append(" )* , ");
+            b.append("       ; _Constructor ");
+            b.append("\n");
+         
+            
+            
+            
+            
 			for (final Environment.CoolMethod m : c.methods.values()) {
 				if (m.parent.builtin && m.builtinImplementation == null) {
 					continue;
@@ -305,8 +376,7 @@ public class CodeGenerator {
 			
 			if (c == INT) {
 				b.append(", i32");
-			} else if (c == STRING) {
-				b.append(", i32, i8 *");
+			}
 			} else if (c == BOOL) {
 				b.append(", i1");
 			}
@@ -327,6 +397,77 @@ public class CodeGenerator {
 			b.append(c.parent.getInternalClassName());
 			b.append("* ");
 			b.append(c.parent.getInternalDescriptorName());
+            
+            b.append(" ,");
+            b.append("\n");
+            b.append("%obj_");
+            b.append(c.getInternalClassName());
+            b.append("*");
+            b.append(" (");
+            //cast c.node into class declaration
+            ClassDecl decl = (ClassDecl) c.node;
+            ClassVarFormals cvf = (ClassVarFormals) decl.varformals;
+            
+            //iterate over cvf.formalvarlist 
+            
+            //Iterator iterator = cvf.formalvarlist.iterator();
+            for (int i = 0; i < cvf.formalvarlist.size(); i++)
+            //while(iterator.hasNext())
+            {
+                //ClassFormal cd = (ClassFormal) iterator.next();
+                ClassFormal cd = (ClassFormal) formalvarlist.get(i);
+                if(cd.type == int)
+                {
+                    //add i32
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" i32");
+                    }
+                    else
+                    {
+                        b.append(" i32,");
+                    }
+                }
+                else if(cd.type == boolean)
+                {
+                    //add i1
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" i1");
+                    }
+                    else
+                    {
+                        b.append(" i1,");
+                    }
+                }
+                else
+                {
+                    //add %obj_cd.type *
+                    if(i == (cvf.formalvarlist.size()-1))
+                    {
+                        b.append(" %obj_");
+                        b.append(cd.type);
+                        b.append("*");
+                    }
+                    else
+                    {
+                        b.append(" %obj_");
+                        b.append(cd.type);
+                        b.append("*,");
+                    }
+                }
+            }
+            b.append(" )* ");
+            b.append("@");
+            b.append(c.getInternalClassName());
+            b.append("_constructor ,");
+            //b.append("       ; _Constructor ");
+            b.append("\n");
+            
+            
+            
+            
+            
 			for (final Environment.CoolMethod m : c.methods.values()) {
 				if (m.parent.builtin && m.builtinImplementation == null) {
 					continue;
@@ -1069,75 +1210,74 @@ public class CodeGenerator {
 		return call;
 	}
 	
-	private Register instantiate(final Environment.CoolClass cls)
-			throws CodeGenerationException, Environment.EnvironmentException {
+	private Register instantiate(final Environment.CoolClass cls) throws CodeGenerationException, Environment.EnvironmentException 
+    {
 		o("\t; START instantiating ").append(cls).append("\n");
-		final Register result = nextRegister(cls.getInternalInstanceName()
-				+ "**");
+		final Register result = nextRegister(cls.getInternalInstanceName() + "**");
 		alloca(result);
 		malloc(result, result.derefType());
 		final Register instance = load(result);
 		o("\t; setting class pointer\n");
-		final Register classPtr = getElementPtr(instance, cls
-				.getInternalClassName()
-				+ "**", 0, 0);
-		final Register clazz = new Register(cls.getInternalDescriptorName(),
-				cls.getInternalClassName() + "*");
+		final Register classPtr = getElementPtr(instance, cls.getInternalClassName() + "**", 0, 0);
+		final Register clazz = new Register(cls.getInternalDescriptorName(),cls.getInternalClassName() + "*");
 		store(clazz, classPtr);
 		int i = 1;
-		for (final Environment.CoolAttribute a : cls.attrList) {
-			o("\t; START attribute ").append(a).append(" of ")
-					.append(cls).append("\n");
-			final Register attrPtr = getElementPtr(instance, a.type
-					.getInternalInstanceName()
-					+ "**", 0, i);
+		for (final Environment.CoolAttribute a : cls.attrList) 
+        {
+			o("\t; START attribute ").append(a).append(" of ").append(cls).append("\n");
+			final Register attrPtr = getElementPtr(instance, a.type.getInternalInstanceName() + "**", 0, i);
 			Register attrClass;
-			if (a.type == STRING || a.type == INT || a.type == BOOL) {
+			if (a.type == STRING || a.type == INT || a.type == BOOL) 
+            {
 				attrClass = instantiate(a.type);
 				final Register attrInst = load(attrClass);
 				store(attrInst, attrPtr);
-			} else {
-				store(new Register("null", a.type.getInternalInstanceName()
-						+ "*"), attrPtr);
+			} 
+            else 
+            {
+				store(new Register("null", a.type.getInternalInstanceName()	+ "*"), attrPtr);
 			}
 			i++;
-			o("\t; END attribute ").append(a).append(" of ")
-					.append(cls).append("\n");
+			o("\t; END attribute ").append(a).append(" of ").append(cls).append("\n");
 		}
 		
-		if (cls.builtin) {
-			if (cls == STRING) {
+		if (cls.builtin) 
+        {
+			if (cls == STRING) 
+            {
 				o("\t; Setting new String to default (empty)\n");
 				setString(instance, "");
-			} else if (cls == INT) {
+			} 
+            else if (cls == INT) 
+            {
 				o("\t; Setting new Int to default (0)\n");
 				setInt(instance, 0);
-			} else if (cls == BOOL) {
+			} 
+            else if (cls == BOOL)
+            {
 				o("\t; Setting new Bool to default (false)\n");
 				setBool(instance, false);
 			}
 		}
 		
 		int i2 = 1;
-		for (final Environment.CoolAttribute a : cls.attrList) {
-			if (a.node.right != null) {
-				o("\t; Initialize ").append(a).append(
-						" to introduced value\n");
-				final Register attrPtr = getElementPtr(instance, a.type
-						.getInternalInstanceName()
-						+ "**", 0, i2);
+		for (final Environment.CoolAttribute a : cls.attrList) 
+        {
+			if (a.node.right != null) 
+            {
+				o("\t; Initialize ").append(a).append(" to introduced value\n");
+				final Register attrPtr = getElementPtr(instance, a.type.getInternalInstanceName() + "**", 0, i2);
 				final Register v = generate(cls, result, a.node.right);
 				Register attrInst = makeSinglePtr(v);
-				if (!(attrInst.type + "*").equals(attrPtr.type)) {
-					attrInst = bitcast(attrInst, attrPtr.derefType());
+				if (!(attrInst.type + "*").equals(attrPtr.type)) 
+                { 
+                    attrInst = bitcast(attrInst, attrPtr.derefType());
 				}
 				store(attrInst, attrPtr);
 			}
 			i2++;
 		}
-		
 		o("\t; END instantiating ").append(cls).append("\n");
-		
 		return result;
 	}
 	
