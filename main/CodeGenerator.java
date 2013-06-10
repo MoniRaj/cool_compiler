@@ -210,7 +210,6 @@ public class CodeGenerator {
         o("@str.format = private constant [3 x i8] c\"%s\\00\"");
         o("@str.format2 = private constant [3 x i8] c\"%d\\00\"");
         o("@emptychar = global i8 0");
-        o("\ndeclare i32 @printf(i8* noalias, ...)");
         o("declare i8* @malloc(i64)");
         o("declare noalias i8* @GC_malloc(i64)");
         o("declare void @GC_init()");
@@ -241,6 +240,11 @@ public class CodeGenerator {
         //    Nothing may not have to be implemented if we don't get to case stmts
 
         //Unit, Int, String, and Boolean are basic types
+       
+        //TODO add this?
+        //o(";;;;;; Unit class ;;;;;");
+        //o("@the_Unit = global %obj_Unit { %class_Unit @Unit }");
+        //o("\n");
 
         o(";;;;;; Any class ;;;;;");
         o("%class_Any = type {");
@@ -263,7 +267,7 @@ public class CodeGenerator {
         //o("  %obj_Any* ()* @Any_constructor,            ; constructor");
                 //PE don't need a constructor for Any?
         //o("  %obj_String* (%obj_Any*)* @Any_toString,   ; toString");
-        o("  i1 (%obj_Any*, %obj_Any*)* @Any_equals,    ; equals");
+        o("  i1 (%obj_Any*, %obj_Any*)* @Any_equals     ; equals");
         o("}");
         o("\n");
         o("\n");
@@ -566,6 +570,11 @@ public class CodeGenerator {
     }
 
 	protected void generateClassDescriptors() {
+        o(";#################################################################");
+        o(";###                     program types                         ###");
+        o(";#################################################################");
+        o("\n");
+
         //For each class
 		for (final Environment.CoolClass c : env.class_map.values()) {
             if (c.builtin) {
@@ -743,6 +752,7 @@ public class CodeGenerator {
                     }
                 }
             }
+            //TODO this stuff is broken!
             b.append(" )* ");
             b.append("@");
             b.append(c.getInternalClassName());
@@ -1112,6 +1122,7 @@ public class CodeGenerator {
                             ((DotExpr) e).id));
 				Register id = thiz;
 				Environment.CoolClass curClass = cls;
+                //left.class_type is null! why???
                 Expr left = ((DotExpr) e).expr;
 				if (left != null) {
 					id = generate(cls, thiz, left);
@@ -1604,21 +1615,98 @@ public class CodeGenerator {
 	
 	private void writeMainFunction() throws Environment.EnvironmentException,
 			CodeGenerationException {
-		o("define i32 @main() {\n\tcall void @GC_init()\n");
-		final Environment.CoolClass mainClass = env.getClass("Main");
-		final Environment.CoolMethod mainMethod = env.lookupMethod(mainClass,
-				"main");
-		final Register main = instantiate(mainClass);
-		final Register mainInst = load(main);
-		final Register mainMethodPtr = getElementPtr(new Register(mainClass
-				.getInternalDescriptorName(), mainClass.getInternalClassName()
-				+ "*"), mainMethod.getInternalType() + "*", 0, mainMethod.index);
-		final Register mainMethodInst = load(mainMethodPtr);
-		// o("\t; ").append(mainMethodPtr.typeAndName()).append("\n");
-		call(mainMethodInst, mainInst, mainMethod.type
-				.getInternalInstanceName()
-				+ "*");
-		o("\tret i32 0\n}\n\n");
+		o("define i32 @ll_main() {\n\tcall void @GC_init()\n");
+        if (!env.class_map.containsKey("Main")) {
+            System.err.println("\nWARNING: Main class not present");
+        } 
+        else {
+            final Environment.CoolClass main = env.getClass("Main");
+            final Register mainReg = instantiate(main);
+            final Register mainInst = load(mainReg);
+/*
+            final Register mainMethodPtr = getElementPtr(new Register(main
+                    .getInternalDescriptorName(), main.getInternalClassName()
+                    + "*"), mainMethod.getInternalType() + "*", 0, mainMethod.index);
+            final Register mainMethodInst = load(mainMethodPtr);
+*/
+            ClassDecl mainClass = (ClassDecl) main.node;
+            ArrayList mainList = mainClass.classbody.featlist;
+            int numBlockFeats = 0;
+            for (int j = 0; j < mainList.size(); j++) {
+                Feature feat = (Feature) mainList.get(j);
+                if (feat.feattype.equals("block")) {
+                    BlockFeature bf = feat.blockfeature;
+                    numBlockFeats += 1;
+                    Block b = bf.block;
+                    //generate for the block
+                    //Empty block
+                    if (b.blockitems.size() == 0) {
+                        System.err.println("Empty Block!!! All kinds of bad!");
+                       //return new Register("null", ANY.getInternalInstanceName()
+                        //    + "*"); //TODO is this ok?
+                    }
+                    else {
+                        int num_registers = 0;
+                        int num_locals = 0;
+                        ArrayList<Register> registers = new ArrayList<Register>();
+                        for (int i = 0; i < b.blockitems.size(); i++) {
+                            BlockItem bi = (BlockItem) b.blockitems.get(i);
+                            if (!bi.id.equals("")) {
+                                num_locals++;
+                                final String name = bi.id;
+                                final Environment.CoolClass type = env
+                                    .getClass(bi.type);
+                                final Register letVar = instantiate(type);
+                                env.local_types.push(bi.id, type);
+                                if (bi.expr != null) {
+                                    Register tmp = new Register(
+                                            "mn" +String.valueOf(num_registers),
+                                            "obj_Main*");
+                                    final Register letValuePtr = generate(
+                                            main, tmp, bi.expr);
+                                    final Register letValue = load(letValuePtr);
+                                    store(letValue, letVar);
+                                }
+                                log(MessageFormat.format("Pushing {0} for {1}", 
+                                            letVar.typeAndName(), name));
+                                env.registers.push(name, letVar);
+                            }
+                            Register tmp2 = new Register(
+                                    "main" + String.valueOf(num_registers),
+                                    "obj_Main*");
+                            registers.add(generate(main, tmp2, bi.expr));
+                            num_registers++;
+                        }
+                        for (int i = 0; i < num_locals; ++i) {
+                            env.registers.pop();
+                            env.local_types.pop();
+                        }
+                        //return registers.get(num_registers-1);
+                    }
+                }
+            }
+            log(MessageFormat.format(
+                            "Main class has {0} blocks",numBlockFeats));
+            if (numBlockFeats == 0) {
+                System.err.println("No blocks in Main: BIG PROBLEM!");
+            }
+
+/*
+            final Environment.CoolMethod mainMethod = env.lookupMethod(mainClass,
+                    "main");
+            final Register main = instantiate(mainClass);
+            final Register mainInst = load(main);
+            final Register mainMethodPtr = getElementPtr(new Register(mainClass
+                    .getInternalDescriptorName(), mainClass.getInternalClassName()
+                    + "*"), mainMethod.getInternalType() + "*", 0, mainMethod.index);
+            final Register mainMethodInst = load(mainMethodPtr);
+            // o("\t; ").append(mainMethodPtr.typeAndName()).append("\n");
+            call(mainMethodInst, mainInst, mainMethod.type
+                    .getInternalInstanceName()
+                    + "*");
+*/
+            o("\tret i32 0\n}\n\n");
+        }
 	}
 	
 	private Register call(final Register methodPtr, final Register thiz,

@@ -20,6 +20,7 @@ package typecheck;
 
 import ast.*;
 import beaver.*;
+import java.util.ArrayList;
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -320,6 +321,8 @@ Helper Methods
                         return setType(STRING, e);
                     }
                     else if (((PrimaryExpr) e).primarytype.equals("id")) {
+                        Environment.CoolClass cl = env.lookupAttrType(
+                                curr_class, ((PrimaryExpr) e).id);
                         return setType(env.lookupAttrType(
                                     curr_class, ((PrimaryExpr) e).id), e);
                     }
@@ -361,14 +364,25 @@ Helper Methods
                             Environment.CoolClass last_type = UNIT;
                             int num_locals = 0;
                             for(int i = 0; i < block.blockitems.size(); i++) {
-                                BlockItem bi = (BlockItem) block.blockitems.get(i);
+                                BlockItem bi =(BlockItem) block.blockitems.get(i);
                                 if (!bi.id.equals("")) {
                                     Environment.CoolClass type = env.getClass(
                                             bi.type);
+                                    last_type = check(curr_class, bi.expr);
+                                    if (!moreGeneralOrEqualTo(
+                                                type, last_type)) {
+                                        throw new TypeCheckException(
+                                                MessageFormat.format(
+                                                    "Local variable assignment of incompatible type (expected {0}; found {1})", type, last_type));
+                                    }
+                                    log(MessageFormat.format(
+                                                "Pushing {0}:{1} onto local environment", bi.id, last_type));
                                     env.local_types.push(bi.id, type);
                                     num_locals += 1;
                                 }
-                                last_type = check(curr_class, bi.expr);
+                                else {
+                                    last_type = check(curr_class, bi.expr);
+                                }
                             }
                             for (int i = 0; i < num_locals; i++) {
                                 env.local_types.pop();
@@ -518,6 +532,7 @@ Helper Methods
                                 "While predicate should be Bool, found {0}",
                                 pred_type));
                     }
+                    check(curr_class, ((WhileExpr) e).expr2);
                     return setType(UNIT, e);
 
                 //Boolean operators
@@ -822,14 +837,65 @@ Visit Methods
             if (!env.class_map.containsKey("Main")) {
                 System.err.println("\nWARNING: Main class not present");
             } else {
-                final Environment.CoolMethod main_method = 
-                    env.class_map.get("Main").methods.get("main");
-                if (main_method == null) {
-                    System.err.println(
-                            "\nWARNING: Main class has no main() method");
-                } else if (main_method.arguments.size() != 0) {
-                    System.err.println(
-                            "\nWARNING: Main.main() should not have arguments.");
+                log("\n--Processing Main method--\n");
+                Environment.CoolClass main = env.class_map.get("Main");
+                ClassDecl mainClass = (ClassDecl) main.node;
+                ArrayList mainList = mainClass.classbody.featlist;
+                int numBlockFeats = 0;
+                for (int i = 0; i < mainList.size(); i++) {
+                    Feature feat = (Feature) mainList.get(i);
+                    if (feat.feattype.equals("block")) {
+                        BlockFeature bf = feat.blockfeature;
+                        numBlockFeats += 1;
+                        Block b = bf.block;
+                        //typecheck b
+                        //Empty block
+                        if (b.blockitems.size() == 0) {
+                            System.err.println("THIS IS BAD: empty block");
+                        }
+                        //Single expr block
+                        else if (b.blockitems.size() == 1) {
+                            Environment.CoolClass bi_type = check(
+                                    main, 
+                                    ((BlockItem) b.blockitems.get(0)).expr);
+                            b.class_type = bi_type;
+                        }
+                        //Multi expr block
+                        else {
+                            Environment.CoolClass last_type = UNIT;
+                            int num_locals = 0;
+                            for(int j = 0; j < b.blockitems.size(); j++) {
+                                BlockItem bi = (BlockItem) b.blockitems.get(j);
+                                if (!bi.id.equals("")) {
+                                    Environment.CoolClass type = env.getClass(
+                                            bi.type);
+                                    last_type = check(main, bi.expr);
+                                    if (!moreGeneralOrEqualTo(
+                                                type, last_type)) {
+                                        throw new TypeCheckException(
+                                                MessageFormat.format(
+                                                    "Local variable assignment of incompatible type (expected {0}; found {1})", type, last_type));
+                                    }
+                                    log(MessageFormat.format(
+                                                "Pushing {0}:{1} onto local environment", bi.id, last_type));
+                                    env.local_types.push(bi.id, type);
+                                    num_locals += 1;
+                                }
+                                else {
+                                    last_type = check(main, bi.expr);
+                                }
+                            }
+                            for (int k = 0; k < num_locals; k++) {
+                                env.local_types.pop();
+                            }
+                            b.class_type = last_type;
+                        }
+                    }
+                }
+                log(MessageFormat.format(
+                            "Main class has {0} blocks",numBlockFeats));
+                if (numBlockFeats == 0) {
+                    System.out.println("No blocks in Main: BIG PROBLEM!");
                 }
             }
 

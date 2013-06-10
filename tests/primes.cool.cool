@@ -22,7 +22,6 @@ class Sieve(var prime : Int) extends IO() {
 }
 
 class Main() extends IO() {
-  def main() : Unit =
   {
     var s : Sieve = new Sieve(2);
     var i : Int = 2;
