@@ -1,19 +1,32 @@
 # README
 #
-# Explains contents and details how to run type checker
+# Explains contents and details how to run [Not-As-]Cool Compiler
 #
 # Author: Paul Elliott and Monisha Balireddi
-# Date: 5/22/13
+# Date: 6/11/13
+
+--0. Notes--
+Our version of the Cool Compiler, dubbed [Not-As-]Cool Compiler,
+has been scaled down in some trivial ways.  For one,
+case statements have been removed from the language.
+Two, Symbols have been removed for now--this means that
+the Symbol functionality of IO has also been removed.
+Three, String functionality has been reduced--we decided
+to represent Strings as a basic type i8* character pointer in LLVM,
+and therefore we did not get a chance to create the specialty String functions.
+Four, the toString functionality of the Any class has been removed.
+Lastly, there is no ArrayAny class..sad day, but we just didn't get to it.
 
 --1. Contents--
 This directory should contain:
     a. main/
-        1. test.sh - a shell script for compiling/running my code
+        1. test.sh - a shell script for compiling/running the compiler
         2. scanner.flex - a JFlex program containing the scanner definition
         3. Driver.java - a Driver program for testing the Cool parser/AST builder
         4. ErrorReport.java - an error reporting class
         5. cool.grammar - a Beaver grammar specification for a LALR(1) parser
         6. Terminals.java - a class containing the Terminal IDs
+        7. CodeGenerator.java - the fancy shmancy code generation class
     b. beaver/
         1. Scanner.java - part of Beaver scanner api
         2. Symbol.java - part of Beaver scanner api
@@ -21,7 +34,7 @@ This directory should contain:
         4. Parser.java - part of Beaver api
         5. ParsingTables.java - part of Beaver api
         6. beaver-cc-0.9.11.jar - jar file used to execute Beaver on a grammar file
-        7. beaver-cc.jar - (older) jar file used to execute Beaver on a grammar file
+        7. beaver-cc.jar - (older) jar file used to " " " 
     c. ast/
         [This directory contains all of the Java class files necessary
          for building the AST--including abstract syntax classes. 
@@ -53,4 +66,4 @@ The script will compile the parser, followed by the scanner,
 and then run everything and build the AST. The AST will be 
 printed to the console (stdout) in the form of a JSON string.
 
-Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu
+Questions or comments, please email Paul Elliott at paule@cs.uoregon.edu.
