@@ -132,7 +132,7 @@ Helper Methods
         method.node = mf;
         processMethodArguments(method, mf.varformals);
         env.addMethod(CURR_CLASS, method);
-        //node.type = return_type; //TODO do we need this?
+        method.node.type = return_type; //TODO this might break
     }
 
     protected void addAttribute(String i, String t, Node n, Expr e)
@@ -142,7 +142,7 @@ Helper Methods
                 i, type, e);
         attr.node = n; 
         env.addAttribute(CURR_CLASS, attr);
-        //node.type = t; //TODO do we need this?
+        attr.node.type = type; //TODO this might break
     }
 
     protected void processMethodArguments(final Environment.CoolMethod method,
