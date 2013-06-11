@@ -206,7 +206,8 @@ public class CodeGenerator {
         o(";#################################################################");
         o("\n");
         //target triple
-        o("target triple = \"x86_64-apple-macosx10.7.0\"");
+        //o("target triple = \"x86_64-apple-macosx10.7.0\"");
+        o("target triple = \"x86_64-apple-darwin10.0\"");
         o("@str.format = private constant [3 x i8] c\"%s\\00\"");
         o("@str.format2 = private constant [3 x i8] c\"%d\\00\"");
         o("@emptychar = global i8 0");
@@ -214,12 +215,12 @@ public class CodeGenerator {
         o("declare noalias i8* @GC_malloc(i64)");
         o("declare void @GC_init()");
         o("declare i32 @strcmp(i8*, i8*)\n");
-        o("declare i32 @fprintf(%struct.__sFILE*, i8*, ...)");
-        o("declare void @exit(i32) noreturn");
-        o("@__stderrp = external global %struct.__sFILE*");
-        o("%struct.__sFILE = type <{ i8*, i32, i32, i16, i16, i8, i8, i8, i8, %struct.__sbuf, i32, i8, i8, i8, i8, i8*, i32 (i8*)*, i32 (i8*, i8*, i32)*, i64 (i8*, i64, i32)*, i32 (i8*, i8*, i32)*, %struct.__sbuf, %struct.__sFILEX*, i32, [3 x i8], [1 x i8], %struct.__sbuf, i32, i8, i8, i8, i8, i64 }>");
-        o("%struct.__sFILEX = type opaque");
-        o("%struct.__sbuf = type <{ i8*, i32, i8, i8, i8, i8 }>");
+        o("declare i32 @fprintf(%__sFILE*, i8*, ...)");
+        o("declare i32 @exit(i32) noreturn");
+        o("@__stderrp = external global %__sFILE*");
+        o("%__sFILE = type <{ i8*, i32, i32, i16, i16, i8, i8, i8, i8, %__sbuf, i32, i8, i8, i8, i8, i8*, i32 (i8*)*, i32 (i8*, i8*, i32)*, i64 (i8*, i64, i32)*, i32 (i8*, i8*, i32)*, %__sbuf, %__sFILEX*, i32, [3 x i8], [1 x i8], %__sbuf, i32, i8, i8, i8, i8, i64 }>");
+        o("%__sFILEX = type opaque");
+        o("%__sbuf = type <{ i8*, i32, i8, i8, i8, i8 }>");
         o("@\"\\01LC\" = internal constant [3 x i8] c\"%s\\00\"");
         o("@\"\\01LC1\" = internal constant [5 x i8] c\"null\\00\"");
         o("@\"\\01LC2\" = internal constant [38 x i8] c\"Error: input cannot exceed 1000 chars\\00\"");  
@@ -279,25 +280,26 @@ public class CodeGenerator {
 
         o("define i1 @Any_equals(%obj_Any* %this, %obj_Any* %x) {");
         o("  %any1 = alloca i1                  ; <i1*> ");
-        o("  %this.addr = alloca %obj_Any*		; <%struct.obj_Any**> ");
-        o("  %x.addr = alloca %obj_Any*		    ; <%struct.obj_Any**> ");
+        o("  %this.addr = alloca %obj_Any*		; <%obj_Any**> ");
+        o("  %x.addr = alloca %obj_Any*		    ; <%obj_Any**> ");
         o("  %ret = alloca i1, align 4		    ; <i1*> ");
-        o("  store %obj_Any* %this, %struct.obj_Any** %this.addr");
-        o("  store %obj_Any* %x, %struct.obj_Any** %x.addr");
-        o("  %any2 = load %obj_Any** %this.addr	; <%struct.obj_Any*> ");
-        o("  %any3 = load %obj_Any** %x.addr		; <%struct.obj_Any*> ");
+        o("  store %obj_Any* %this, %obj_Any** %this.addr");
+        o("  store %obj_Any* %x, %obj_Any** %x.addr");
+        o("  %any2 = load %obj_Any** %this.addr	; <%obj_Any*> ");
+        o("  %any3 = load %obj_Any** %x.addr		; <%obj_Any*> ");
         o("  %any4 = icmp eq %obj_Any* %any2, %any3		; <i1> ");
-        o("  br i1 %any4, label %any5, label %any6\n");
-        o("  ; <label>");
-        o(":any5	        	                ; preds = %0");
+        o("  br i1 %any4, label %Label5, label %Label6\n");
+        o("  ; <label>:5	        	                ; preds = %0");
+        o("Label5:  ");
         o("  store i1 1, i1* %ret");
-        o("  br label %any7\n");
-        o("  ; <label>");
-        o(":any6		                       ; preds = %0");
+        o("  br label %Label7\n");
+        o("  ; <label>:6		                       ; preds = %0");
+        o("Label6:  ");
         o("  store i1 0, i1* %ret");
-        o("  br label %any7\n");
-        o("  ; <label>");
-        o(":any7		                        ; preds = %0");
+        o("  br label %Label7\n");
+        o("  ; <label>:7		                        ; preds = %0");
+        o("Label7:  ");
+        o("  store i1 0, i1* %ret");
         o("  %any8 = load i1* %ret		        ; <i1> ");
         o("  store i1 %any8, i1* %any1");
         o("  %any9 = load i1* %any1		        ; <i1> ");
@@ -353,21 +355,21 @@ public class CodeGenerator {
         
         o("define %obj_Any* @ArrayAny_get(%obj_ArrayAny* %this, i32 %index) {");
         o("  %elt = alloca %obj_Any*   ; the returned elt);
-        o("%1 = alloca %struct.obj_Any*		; <%struct.obj_Any**> [#uses=2]
-        o("%this.addr = alloca %struct.obj_ArrayAny*		; <%struct.obj_ArrayAny**> [#uses=2]
+        o("%1 = alloca %obj_Any*		; <%obj_Any**> [#uses=2]
+        o("%this.addr = alloca %obj_ArrayAny*		; <%obj_ArrayAny**> [#uses=2]
         o("%index.addr = alloca i32		; <i32*> [#uses=2]
-        o("store %struct.obj_ArrayAny* %this, %struct.obj_ArrayAny** %this.addr
+        o("store %obj_ArrayAny* %this, %obj_ArrayAny** %this.addr
         o("store i32 %index, i32* %index.addr
         o("%2 = load i32* %index.addr		; <i32> [#uses=1]
-        o("%3 = load %struct.obj_ArrayAny** %this.addr		; <%struct.obj_ArrayAny*> [#uses=1]
-        o("%4 = getelementptr %struct.obj_ArrayAny* %3, i32 0, i32 6		; <%struct.obj_Any***> [#uses=1]
-        o("%5 = load %struct.obj_Any*** %4		; <%struct.obj_Any**> [#uses=1]
+        o("%3 = load %obj_ArrayAny** %this.addr		; <%obj_ArrayAny*> [#uses=1]
+        o("%4 = getelementptr %obj_ArrayAny* %3, i32 0, i32 6		; <%obj_Any***> [#uses=1]
+        o("%5 = load %obj_Any*** %4		; <%obj_Any**> [#uses=1]
         o("%6 = sext i32 %2 to i64		; <i64> [#uses=1]
-        o("%7 = getelementptr %struct.obj_Any** %5, i64 %6		; <%struct.obj_Any**> [#uses=1]
-        o("%8 = load %struct.obj_Any** %7		; <%struct.obj_Any*> [#uses=1]
-        o("store %struct.obj_Any* %8, %struct.obj_Any** %1
-        o("%9 = load %struct.obj_Any** %1		; <%struct.obj_Any*> [#uses=1]
-        o("ret %struct.obj_Any* %9
+        o("%7 = getelementptr %obj_Any** %5, i64 %6		; <%obj_Any**> [#uses=1]
+        o("%8 = load %obj_Any** %7		; <%obj_Any*> [#uses=1]
+        o("store %obj_Any* %8, %obj_Any** %1
+        o("%9 = load %obj_Any** %1		; <%obj_Any*> [#uses=1]
+        o("ret %obj_Any* %9
 
 */
         //Symbol would go here
@@ -413,18 +415,18 @@ public class CodeGenerator {
         o("  %class_Any*,                               ; parent pointer");
         //o("  %class_String* ( %obj_IO* )*,              ; String toString(this)");
         o("  i1 ( %obj_IO*, %obj_Any* )*,               ; Booln equals(this,x)");
-        o("  %void ( %obj_IO*, i8* )*,     ; void abort(this, message)");
-        o("  %class_IO* ( %obj_IO*, i8* )*,    ; IO out(this, message)");
+        o("  void ( %obj_IO*, i8* )*,     ; void abort(this, message)");
+        o("  %obj_IO* ( %obj_IO*, i8* )*,    ; IO out(this, message)");
         o("  i1 ( %obj_IO*, %obj_Any* )*,          ; Boolean is_null(this, arg)");
         //o("  %class_IO* ( %obj_IO*, %obj_Any* )*,   ; IO out_any(this, message)");
-        o("  i8* ( %obj_IO* )*,              ; String in(this)");
+        o("  i8* ( %obj_IO* )*              ; String in(this)");
         //o("  %class_Symbol* ( %obj_IO*, %obj_String* )*,  ; Symbol symbol(this, name)");
         //o("  %class_String* ( %obj_IO*, %obj_Symbol* )*  ; String symbol_name(this, sym)");
         o("}");
         o("\n");
 
         o("%obj_IO = type {");
-        o("  %class_IO*,                                ; class ptr");
+        o("  %class_IO*                                ; class ptr");
         //o("  [100 x i8]*                                ; name");
         o("}");
         o("\n");
@@ -437,69 +439,70 @@ public class CodeGenerator {
         o("  %obj_IO* ( %obj_IO*, i8* )* @IO_out,    ; out");
         o("  i1 ( %obj_IO*, %obj_Any* )* @IO_is_null,  ; is_null");
         //o("  %obj_IO* ( %obj_IO*, %obj_Any* )* @IO_out_any,   ; out_any");
-        o("  i8* ( %obj_IO* )* @IO_in,              ; in");
+        o("  i8* ( %obj_IO* )* @IO_in              ; in");
         //o("  %class_Symbol* ( %obj_IO*, %obj_String* )* @IO_symbol,  ; symbol");
         //o("  %class_String* ( %obj_IO*, %obj_Symbol* )* @IO_symbol_name ; symbol_name");
         o("}");
         o("\n");
 
         //o("@IO_toString = alias %obj_String* ( %obj_ArrayAny*)* bitcast (%obj_String* (%obj_Any*)* @Any_toString to %obj_String* ( %obj_ArrayAny*)*)");
-        o("@IO_equals = alias i1 ( %obj_IO*, %obj_Any)* bitcast (i1 (%obj_Any*, %obj_Any*)* @Any_equals to i1 ( %obj_IO*, %obj_Any)*)");
+        o("@IO_equals = alias i1 ( %obj_IO*, %obj_Any*)* bitcast (i1 (%obj_Any*, %obj_Any*)* @Any_equals to i1 ( %obj_IO*, %obj_Any*)*)");
 
-        o("define void @IO_abort(%obj_IO %this, i8* message) {");
-        o("  %this.addr = alloca %obj_IO*     ; <%struct.obj_IO**> ");
+        o("\n");
+        o("define void @IO_abort(%obj_IO* %this, i8* %message) {");
+        o("  %this.addr = alloca %obj_IO*     ; <%obj_IO**> ");
         o("  %message.addr = alloca i8*      ; i8** ");
-        o("  store %obj_IO* %this, %struct.obj_IO** %this.addr");
-        o("  store i8* %message, %i8** %message.addr");
-        o("  %1 = load %__sFILE** @__stderrp      ; <%struct.__sFILE*> ");
+        o("  store %obj_IO* %this, %obj_IO** %this.addr");
+        o("  store i8* %message, i8** %message.addr");
+        o("  %1 = load %__sFILE** @__stderrp      ; <%__sFILE*> ");
         o("  %2 = load i8** %message.addr        ; i8* ");
-        o("  %5 = call i32 (%__sFILE*, i8*, ...)* @fprintf(%struct.__sFILE* %1, i8* getelementptr ([3 x i8]* @\"\\01LC\", i32 0, i32 0), i8* %2)");
-        o("  call void @exit(i32 1) noreturn");
+        o("  %3 = call i32 (%__sFILE*, i8*, ...)* @fprintf(%__sFILE* %1, i8* getelementptr ([3 x i8]* @\"\\01LC\", i32 0, i32 0), i8* %2)");
+        o("  call i32 @exit(i32 1) noreturn");
         o("  unreachable ; No predecessors!");
         o("  ret void");
         o("}");
 
         o("define %obj_IO* @IO_out(%obj_IO* %this, i8* %message) nounwind {");
-        o("     %1 = alloca %obj_IO*     ; <%struct.obj_IO**> [#uses=2]");
-        o("     %this.addr = alloca %obj_IO*     ; <%struct.obj_IO**> [#uses=2]");
+        o("     %1 = alloca %obj_IO*     ; <%obj_IO**> [#uses=2]");
+        o("     %this.addr = alloca %obj_IO*     ; <%obj_IO**> [#uses=2]");
         o("     %message.addr = alloca i8*      ; i8** [#uses=2]");
-        o("     store %obj_IO* %this, %struct.obj_IO** %this.addr");
+        o("     store %obj_IO* %this, %obj_IO** %this.addr");
         o("     store i8* %message, i8** %message.addr");
         o("     %2 = load i8** %message.addr        ; i8*");
-        o("     %5 = call i32 (i8*, ...)* @printf(i8* getelementptr ([3 x i8]* @\"\\01LC\", i32 0, i32 0), i8* %2)     ; <i32>");
-        o("     %6 = load %obj_IO** %this.addr       ; <%struct.obj_IO*>");
-        o("     store %obj_IO* %6, %struct.obj_IO** %1");
-        o("     %7 = load %obj_IO** %1       ; <%struct.obj_IO*>");
-        o("     ret %obj_IO* %7");
+        o("     %3 = call i32 (i8*, ...)* @printf(i8* getelementptr ([3 x i8]* @\"\\01LC\", i32 0, i32 0), i8* %2)     ; <i32>");
+        o("     %4 = load %obj_IO** %this.addr       ; <%obj_IO*>");
+        o("     store %obj_IO* %4, %obj_IO** %1");
+        o("     %5 = load %obj_IO** %1       ; <%obj_IO*>");
+        o("     ret %obj_IO* %5");
         o(" } ");
 
         o(" define i1 @IO_is_null(%obj_IO* %this, %obj_Any* %arg) nounwind {");
         o("     %1 = alloca i1     ; <i1*> ");
-        o("     %this.addr = alloca %obj_IO*     ; <%struct.obj_IO**> ");
-        o("     %arg.addr = alloca %obj_Any*     ; <%struct.obj_Any**> ");
+        o("     %this.addr = alloca %obj_IO*     ; <%obj_IO**> ");
+        o("     %arg.addr = alloca %obj_Any*     ; <%obj_Any**> ");
         o("     %ret = alloca i1, align 4      ; <i1*> ");
         o("     store %obj_IO* %this, %obj_IO** %this.addr");
         o("     store %obj_Any* %arg, %obj_Any** %arg.addr");
-        o("     %2 = load %obj_Any** %arg.addr       ; <%struct.obj_Any*>");
+        o("     %2 = load %obj_Any** %arg.addr       ; <%obj_Any*>");
         o("     %3 = icmp eq %obj_Any* %2, null      ; <i1> ");
-        o("     br i1 %3, label %4, label %5");
+        o("     br i1 %3, label %Label4, label %Label5");
         o(" ");
         o(" ; <label>");
-        o(" :4     ; preds = %0");
+        o("Label4:     ; preds = %0");
         o("     store i1 1, i1* %ret");
-        o("     br label %6");
+        o("     br label %Label6");
         o(" ");
         o(" ; <label>");
-        o(" :5     ; preds = %0");
+        o("Label5:     ; preds = %0");
         o("     store i1 0, i1* %ret");
-        o("     br label %6");
+        o("     br label %Label6");
         o(" ");
         o(" ; <label>");
-        o(" :6     ; preds = %5, %4");
-        o("     %7 = load i1* %ret     ; <i1> ");
-        o("     store i1 %7, i1* %1");
-        o("     %8 = load i1* %1       ; <i1> ");
-        o("     ret i1 %8");
+        o("Label6:     ; preds = %5, %4");
+        o("     %4 = load i1* %ret     ; <i1> ");
+        o("     store i1 %4, i1* %1");
+        o("     %5 = load i1* %1       ; <i1> ");
+        o("     ret i1 %5");
         o(" }");
 
 /*TODO finish this possibly?
@@ -511,61 +514,62 @@ public class CodeGenerator {
         o(" 	%1 = alloca i8*		; <i8**> ");
         o(" 	%this.addr = alloca %obj_IO*		; <%obj_IO**> ");
         o(" 	%numchar = alloca i32, align 4		; <i32*> ");
-        o(" 	%c = alloca i8, align 1		; <i8*> ");
+        o(" 	%2 = alloca i8, align 1		; <i8*> ");
         o(" 	%in = alloca i8*, align 8		; <i8**> ");
         o(" 	%tmp = alloca [1000 x i8], align 1		; <[1000 x i8]*> ");
         o(" 	store %obj_IO* %this, %obj_IO** %this.addr");
         o(" 	store i32 0, i32* %numchar");
-        o(" 	br label %2");
+        o(" 	br label %Label2");
         o(" ");
         o("; <label>");
-        o(":2		; preds = %21, %0");
+        o("Label2:		; preds = %21, %0");
         o(" 	%3 = call i32 @getchar()		; <i32> ");
         o(" 	%4 = trunc i32 %3 to i8		; <i8> ");
-        o(" 	store i8 %4, i8* %c");
+        o(" 	store i8 %4, i8* %2");
         o(" 	%5 = sext i8 %4 to i32		; <i32> ");
         o(" 	%6 = icmp ne i32 %5, 10		; <i1> ");
-        o(" 	br i1 %6, label %7, label %22");
+        o(" 	br i1 %6, label %Label7, label %Label22");
         o(" ");
         o("; <label>");
-        o(":7		; preds = %2");
-        o(" 	%8 = load i8* %c		; <i8> ");
-        o(" 	%9 = load i32* %numchar		; <i32> ");
-        o(" 	%10 = getelementptr [1000 x i8]* %tmp, i32 0, i32 0	 ; <i8*> ");
-        o(" 	%11 = sext i32 %9 to i64		; <i64> ");
-        o(" 	%12 = getelementptr i8* %10, i64 %11		; <i8*> ");
-        o(" 	store i8 %8, i8* %12");
-        o(" 	%13 = load i32* %numchar		; <i32> ");
-        o(" 	%14 = add i32 %13, 1		; <i32> ");
-        o(" 	store i32 %14, i32* %numchar");
-        o(" 	%15 = load i32* %numchar		; <i32> ");
-        o(" 	%16 = icmp sge i32 %15, 1000		; <i1> ");
-        o(" 	br i1 %16, label %17, label %21");
+        o("Label7:		; preds = %2");
+        o(" 	%7 = load i8* %2		; <i8> ");
+        o(" 	%8 = load i32* %numchar		; <i32> ");
+        o(" 	%9 = getelementptr [1000 x i8]* %tmp, i32 0, i32 0	 ; <i8*> ");
+        o(" 	%10 = sext i32 %8 to i64		; <i64> ");
+        o(" 	%11 = getelementptr i8* %9, i64 %10		; <i8*> ");
+        o(" 	store i8 %7, i8* %11");
+        o(" 	%12 = load i32* %numchar		; <i32> ");
+        o(" 	%13 = add i32 %12, 1		; <i32> ");
+        o(" 	store i32 %13, i32* %numchar");
+        o(" 	%14 = load i32* %numchar		; <i32> ");
+        o(" 	%15 = icmp sge i32 %14, 1000		; <i1> ");
+        o(" 	br i1 %15, label %Label17, label %Label21");
         o(" ");
         o("; <label>");
-        o(":17		; preds = %7");
-        o(" 	%18 = load %__sFILE** @__stderrp		; <%__sFILE*> ");
-        o(" 	%19 = call i32 (%__sFILE*, i8*, ...)* @fprintf(%__sFILE* %18, i8* getelementptr ([38 x i8]* @\"\\01LC2\", i32 0, i32 0))		; <i32> ");
-        o(" 	%20 = call i32 (...)* @exit(i32 1)		; <i32> ");
-        o(" 	br label %21");
+        o("Label17:		; preds = %7");
+        o(" 	%16 = load %__sFILE** @__stderrp		; <%__sFILE*> ");
+        o(" 	%17 = call i32 (%__sFILE*, i8*, ...)* @fprintf(%__sFILE* %16, i8* getelementptr ([38 x i8]* @\"\\01LC2\", i32 0, i32 0))		; <i32> ");
+        o("    call i32 @exit(i32 1) noreturn");
+        o("    unreachable ; No predecessors!");
+        o(" 	br label %Label21");
         o(" ");
         o("; <label>");
-        o(":21		; preds = %17, %7");
-        o(" 	br label %2");
+        o("Label21:		; preds = %17, %7");
+        o(" 	br label %Label2");
         o(" ");
         o("; <label>");
-        o(":22		; preds = %2");
-        o(" 	%23 = load i32* %numchar		; <i32> ");
+        o("Label22:		; preds = %2");
+        o(" 	%20 = load i32* %numchar		; <i32> ");
+        o(" 	%21 = getelementptr [1000 x i8]* %tmp, i32 0, i32 0	 ; <i8*> ");
+        o(" 	%22 = sext i32 %20 to i64		; <i64> ");
+        o(" 	%23 = getelementptr i8* %21, i64 %22		; <i8*> ");
+        o(" 	store i8 0, i8* %23");
         o(" 	%24 = getelementptr [1000 x i8]* %tmp, i32 0, i32 0	 ; <i8*> ");
-        o(" 	%25 = sext i32 %23 to i64		; <i64> ");
-        o(" 	%26 = getelementptr i8* %24, i64 %25		; <i8*> ");
-        o(" 	store i8 0, i8* %26");
-        o(" 	%27 = getelementptr [1000 x i8]* %tmp, i32 0, i32 0	 ; <i8*> ");
-        o(" 	store i8* %27, i8** %in");
-        o(" 	%28 = load i8** %in		; <i8*> ");
-        o(" 	store i8* %28, i8** %1");
-        o(" 	%29 = load i8** %1		; <i8*> ");
-        o(" 	ret i8* %29");
+        o(" 	store i8* %24, i8** %in");
+        o(" 	%25 = load i8** %in		; <i8*> ");
+        o(" 	store i8* %25, i8** %1");
+        o(" 	%26 = load i8** %1		; <i8*> ");
+        o(" 	ret i8* %26");
         o("}");
     }
 
@@ -591,8 +595,7 @@ public class CodeGenerator {
             //add constructor stuff
             b.append(", ");
             b.append("\n");
-            b.append("%obj_");
-            b.append(c.getInternalClassName());
+            b.append(c.getInternalInstanceName());
             b.append("*");
             b.append(" (");
             //cast c.node into class declaration
@@ -601,13 +604,17 @@ public class CodeGenerator {
             ClassVarFormals cvf = (ClassVarFormals) decl.varformals;
             
             //iterate over cvf.formalvarlist 
-            
+            System.out.println("HI");
             //Iterator iterator = cvf.formalvarlist.iterator();
             for (int i = 0; i < cvf.formalvarlist.size(); i++)
             //while(iterator.hasNext())
             {
                 //ClassFormal cd = (ClassFormal) iterator.next();
                 ClassFormal cd = (ClassFormal) cvf.formalvarlist.get(i);
+                System.out.println("DEBUG");
+                System.out.println(c.name);
+                System.out.println(cd.type);
+                System.out.println("ENDDEBUG");
                 if(cd.type.equals("Int"))
                 {
                     //add i32
@@ -649,7 +656,7 @@ public class CodeGenerator {
                     }
                 }
             }
-            b.append(" )* , ");
+            b.append(" )* ");
             b.append("       ; _Constructor ");
             b.append("\n");
          
@@ -663,7 +670,7 @@ public class CodeGenerator {
 				}
 				m.index = index++;
 				b.append(", ");
-				b.append(m.getInternalType());
+                b.append(m.getInternalType());
 			}
 			b.append(" }\n");
 			
@@ -681,8 +688,21 @@ public class CodeGenerator {
 			
 			for (final Environment.CoolAttribute a : c.attr_list) {
 				b.append(", ");
-				b.append(a.type.getInternalInstanceName());
-				b.append("*");
+                System.out.println("DEBUG");
+                System.out.println(c);
+                System.out.println(a);
+                System.out.println(a.type);
+                System.out.println("ENDDEBUG");
+                 if (a.type == INT) {
+                    b.append(" i32 ");
+                }
+                else if (a.type == BOOLEAN) {
+                    b.append(" i1 ");
+                }
+                else {
+                    b.append(a.type.getInternalInstanceName());
+                    b.append("*");
+                }
 			}
 			b.append(" }\n");
 			
@@ -698,8 +718,7 @@ public class CodeGenerator {
             
             b.append(" ,");
             b.append("\n");
-            b.append("%obj_");
-            b.append(c.getInternalClassName());
+            b.append(c.getInternalInstanceName());
             b.append("*");
             b.append(" (");
             
@@ -711,6 +730,10 @@ public class CodeGenerator {
             {
                 //ClassFormal cd = (ClassFormal) iterator.next();
                 ClassFormal cd = (ClassFormal) cvf.formalvarlist.get(i);
+                System.out.println("DEBUG");
+                System.out.println(c.name);
+                System.out.println(cd.type);
+                System.out.println("ENDDEBUG");
                 if(cd.type.equals("Int"))
                 {
                     //add i32
@@ -755,8 +778,8 @@ public class CodeGenerator {
             //TODO this stuff is broken!
             b.append(" )* ");
             b.append("@");
-            b.append(c.getInternalClassName());
-            b.append("_constructor ,");
+            b.append(c.name);
+            b.append("_constructor ");
             //b.append("       ; _Constructor ");
             b.append("\n");
             

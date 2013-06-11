@@ -105,12 +105,13 @@ public class Environment {
         public String getInternalType() {
             final StringBuilder sb = new StringBuilder();
             sb.append(type.getInternalInstanceName());
-            sb.append("* (").append(owner.getInternalInstanceName()).append(
-                    " *");
+            String print_thing;
+            print_thing = owner.getInternalInstanceName() + " *";
+            sb.append("* (").append(print_thing);
             for (final CoolAttribute arg : arguments) {
                 sb.append(", ");
-                sb.append(arg.type.getInternalInstanceName());
-                sb.append("* ");
+                print_thing = owner.getInternalInstanceName() + " *";
+                sb.append(print_thing);
             }
             sb.append(") *");
             return sb.toString();

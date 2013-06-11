@@ -38,7 +38,7 @@ echo "Executing Cool compiler on source files: java Driver ${COOLFILES}"
 $JAVA -classpath .. main/Driver $COOLFILES || { echo 'Failed: Exiting.'; exit 1; }
 
 echo "Converting main.ll to main.s"
-$LLC main.ll || { echo 'Failed: Exiting.'; exit 1; }
+$CLANG main.ll || { echo 'Failed: Exiting.'; exit 1; }
 
 echo "Compiling .s files into executable"
 $CLANG driver.c main.ll -o main_program

@@ -2,3 +2,12 @@ class Pair(var v1 : Any, var v2 : Any) {
   def first() : Any = v1;
   def second() : Any = v2;
 }
+
+class Main() {
+    var p:Pair = new Pair(5,7)
+
+    {
+        
+    };
+}
+
