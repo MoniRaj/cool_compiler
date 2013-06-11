@@ -246,6 +246,51 @@ public class CodeGenerator {
         //o(";;;;;; Unit class ;;;;;");
         //o("@the_Unit = global %obj_Unit { %class_Unit @Unit }");
         //o("\n");
+        
+
+        o(";;;;;; Int class ;;;;;");
+        o("%class_Int = type {");
+        o("  %class_Any*,                               ; null parent pointer");
+        o("  i1 ( %obj_Int*, %obj_Any* )*               ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+        o("%obj_Int = type {");
+        o("  %class_Int*,                               ; class ptr");
+        o("  i32                                ; val");
+        o("}");
+        o("\n");
+
+        o("@Int = global %class_Int {");
+        o("  %class_Any* @Any,                          ; null superclass ptr");
+        o("  i1 ( %obj_Int*, %obj_Any* )* @Int_equals   ; equals");
+        o("}");
+        o("\n");
+        
+        o("@Int_equals = alias i1 ( %obj_Int*, %obj_Any*)* bitcast (i1 (%obj_Any*, %obj_Any*)* @Any_equals to i1 ( %obj_Int*, %obj_Any*)*)");
+
+        o(";;;;;; Boolean class ;;;;;");
+        o("%class_Boolean = type {");
+        o("  %class_Any*,                               ; null parent pointer");
+        o("  i1 ( %obj_Boolean*, %obj_Any* )*           ; Booln equals(this,x)");
+        o("}");
+        o("\n");
+
+   
+        o("%obj_Boolean = type {");
+        o("  %class_Boolean*,                           ; class ptr");
+        o("  i1                                         ; val");
+        o("}");
+        o("\n");
+
+        o("@Boolean = global %class_Boolean {");
+        o("  %class_Any* @Any,                          ; null superclass ptr");
+        o("  i1 ( %obj_Boolean*, %obj_Any* )* @Boolean_equals   ; equals");
+        o("}");
+        o("\n");
+        
+        o("@Boolean_equals = alias i1 ( %obj_Boolean*, %obj_Any*)* bitcast (i1 (%obj_Any*, %obj_Any*)* @Any_equals to i1 ( %obj_Boolean*, %obj_Any*)*)");
+
 
         o(";;;;;; Any class ;;;;;");
         o("%class_Any = type {");
@@ -604,56 +649,24 @@ public class CodeGenerator {
             ClassVarFormals cvf = (ClassVarFormals) decl.varformals;
             
             //iterate over cvf.formalvarlist 
-            System.out.println("HI");
             //Iterator iterator = cvf.formalvarlist.iterator();
             for (int i = 0; i < cvf.formalvarlist.size(); i++)
             //while(iterator.hasNext())
             {
                 //ClassFormal cd = (ClassFormal) iterator.next();
                 ClassFormal cd = (ClassFormal) cvf.formalvarlist.get(i);
-                System.out.println("DEBUG");
-                System.out.println(c.name);
-                System.out.println(cd.type);
-                System.out.println("ENDDEBUG");
-                if(cd.type.equals("Int"))
+                //add %obj_cd.type *
+                if(i == (cvf.formalvarlist.size()-1))
                 {
-                    //add i32
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i32");
-                    }
-                    else
-                    {
-                        b.append(" i32,");
-                    }
-                }
-                else if(cd.type.equals("Boolean"))
-                {
-                    //add i1
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i1");
-                    }
-                    else
-                    {
-                        b.append(" i1,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*");
                 }
                 else
                 {
-                    //add %obj_cd.type *
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*");
-                    }
-                    else
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*,");
                 }
             }
             b.append(" )* ");
@@ -679,30 +692,11 @@ public class CodeGenerator {
 			b.append(c.getInternalClassName());
 			b.append("*");
 			
-			if (c == INT) {
-				b.append(", i32");
-			}
-			else if (c == BOOLEAN) {
-				b.append(", i1");
-			}
 			
 			for (final Environment.CoolAttribute a : c.attr_list) {
 				b.append(", ");
-                System.out.println("DEBUG");
-                System.out.println(c);
-                System.out.println(a);
-                System.out.println(a.type);
-                System.out.println("ENDDEBUG");
-                 if (a.type == INT) {
-                    b.append(" i32 ");
-                }
-                else if (a.type == BOOLEAN) {
-                    b.append(" i1 ");
-                }
-                else {
-                    b.append(a.type.getInternalInstanceName());
-                    b.append("*");
-                }
+                b.append(a.type.getInternalInstanceName());
+                b.append("*");
 			}
 			b.append(" }\n");
 			
@@ -734,45 +728,18 @@ public class CodeGenerator {
                 System.out.println(c.name);
                 System.out.println(cd.type);
                 System.out.println("ENDDEBUG");
-                if(cd.type.equals("Int"))
+                //add %obj_cd.type *
+                if(i == (cvf.formalvarlist.size()-1))
                 {
-                    //add i32
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i32");
-                    }
-                    else
-                    {
-                        b.append(" i32,");
-                    }
-                }
-                else if(cd.type.equals("Boolean"))
-                {
-                    //add i1
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i1");
-                    }
-                    else
-                    {
-                        b.append(" i1,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*");
                 }
                 else
                 {
-                    //add %obj_cd.type *
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*");
-                    }
-                    else
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*,");
                 }
             }
             //TODO this stuff is broken!
