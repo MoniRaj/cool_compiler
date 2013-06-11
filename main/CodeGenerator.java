@@ -668,7 +668,8 @@ public class CodeGenerator {
                     b.append(cd.type);
                     b.append("*,");
                 }
-            }
+                
+           }
             b.append(" )* ");
             b.append("       ; _Constructor ");
             b.append("\n");
@@ -691,7 +692,6 @@ public class CodeGenerator {
 			b.append(" = type { ");
 			b.append(c.getInternalClassName());
 			b.append("*");
-			
 			
 			for (final Environment.CoolAttribute a : c.attr_list) {
 				b.append(", ");
@@ -741,6 +741,7 @@ public class CodeGenerator {
                     b.append(cd.type);
                     b.append("*,");
                 }
+                
             }
             //TODO this stuff is broken!
             b.append(" )* ");
