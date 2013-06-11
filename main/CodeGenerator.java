@@ -615,47 +615,21 @@ public class CodeGenerator {
                 System.out.println(c.name);
                 System.out.println(cd.type);
                 System.out.println("ENDDEBUG");
-                if(cd.type.equals("Int"))
+                //add %obj_cd.type *
+                if(i == (cvf.formalvarlist.size()-1))
                 {
-                    //add i32
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i32");
-                    }
-                    else
-                    {
-                        b.append(" i32,");
-                    }
-                }
-                else if(cd.type.equals("Boolean"))
-                {
-                    //add i1
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i1");
-                    }
-                    else
-                    {
-                        b.append(" i1,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*");
                 }
                 else
                 {
-                    //add %obj_cd.type *
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*");
-                    }
-                    else
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*,");
                 }
-            }
+                
+           }
             b.append(" )* ");
             b.append("       ; _Constructor ");
             b.append("\n");
@@ -678,13 +652,7 @@ public class CodeGenerator {
 			b.append(" = type { ");
 			b.append(c.getInternalClassName());
 			b.append("*");
-			
-			if (c == INT) {
-				b.append(", i32");
-			}
-			else if (c == BOOLEAN) {
-				b.append(", i1");
-			}
+		
 			
 			for (final Environment.CoolAttribute a : c.attr_list) {
 				b.append(", ");
@@ -693,16 +661,10 @@ public class CodeGenerator {
                 System.out.println(a);
                 System.out.println(a.type);
                 System.out.println("ENDDEBUG");
-                 if (a.type == INT) {
-                    b.append(" i32 ");
-                }
-                else if (a.type == BOOLEAN) {
-                    b.append(" i1 ");
-                }
-                else {
+                 
                     b.append(a.type.getInternalInstanceName());
                     b.append("*");
-                }
+                
 			}
 			b.append(" }\n");
 			
@@ -734,46 +696,20 @@ public class CodeGenerator {
                 System.out.println(c.name);
                 System.out.println(cd.type);
                 System.out.println("ENDDEBUG");
-                if(cd.type.equals("Int"))
+                //add %obj_cd.type *
+                if(i == (cvf.formalvarlist.size()-1))
                 {
-                    //add i32
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i32");
-                    }
-                    else
-                    {
-                        b.append(" i32,");
-                    }
-                }
-                else if(cd.type.equals("Boolean"))
-                {
-                    //add i1
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" i1");
-                    }
-                    else
-                    {
-                        b.append(" i1,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*");
                 }
                 else
                 {
-                    //add %obj_cd.type *
-                    if(i == (cvf.formalvarlist.size()-1))
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*");
-                    }
-                    else
-                    {
-                        b.append(" %obj_");
-                        b.append(cd.type);
-                        b.append("*,");
-                    }
+                    b.append(" %obj_");
+                    b.append(cd.type);
+                    b.append("*,");
                 }
+                
             }
             //TODO this stuff is broken!
             b.append(" )* ");
